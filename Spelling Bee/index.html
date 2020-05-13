@@ -1,0 +1,84 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+
+  <!--  Meta  -->
+  <meta charset="UTF-8" />
+  <title>My New Pen!</title>
+
+  <!--  Styles  -->
+  <link rel="stylesheet" href="styles/index.processed.css">
+</head>
+
+<body>
+  <h1>Nick's Spelling Bee</h1>
+
+  <input type="text" id="wordGuessField" readonly size="20">
+  
+  <div class="hexagon-container" id="hexagonButtons">
+    <div class="hexagon hide">
+    </div>
+    <div class="hexagon outerLetter" id="B1">
+      B1
+    </div>
+    <div class="hexagon outerLetter" id="B2">
+      B2
+    </div>
+    <div class="hexagon hide">
+    </div>
+    <div class="hexagon outerLetter" id="B6">
+      B6
+    </div>
+    <div class="hexagon centerLetter" id="BC">
+      BC
+    </div>
+    <div class="hexagon outerLetter" id="B3">
+      B3
+    </div>
+    <div class="hexagon hide">
+    </div>
+    <div class="hexagon hide">
+    </div>
+    <div class="hexagon outerLetter" id="B5">
+      B5
+    </div>
+    <div class="hexagon outerLetter" id="B4">
+      B4
+    </div>
+    <div class="hexagon hide">
+    </div>
+  </div>
+
+  <div id="controls">
+    <button id="delete">Delete</button>
+    <button id="rotate">Rotate</button>
+    <button id="submit">Submit</button>
+  </div>
+  <dialog class="popup" id="submitPopup">
+    Normally this text is hidden.
+  </dialog>
+  <div id="currentResults">
+    <div id="gameScore">
+      <label for="gameScoreField">Score:</label>
+      <input type="text" id="gameScoreField" readonly>
+    </div>
+    <div id="gameRank">
+      <label for="gameRankField">Rank:</label>
+      <input type="text" id="gameRankField" readonly>
+    </div>
+  </div>
+  <div id="answers">
+    <h3 id="answersHdr">Answers</h3>
+    <div id="answerList">
+      <ul>
+      </ul>
+    </div>
+  </div>
+  <!-- Scripts -->
+
+<script src="scripts/index.js"></script>
+
+</body>
+
+</html>

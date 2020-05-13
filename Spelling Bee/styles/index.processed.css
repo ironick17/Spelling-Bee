@@ -1,0 +1,145 @@
+/**
+ * index.scss
+ * - Add any styles you want here!
+**/
+body {
+  background: lightgoldenrodyellow;
+  font-family: sans-serif;
+}
+
+h1 {
+  text-align: center;
+}
+
+.centerLetter,
+.outerLetter {
+  font-size: large;
+  font-weight: bold;
+}
+
+#hexagonButtons {
+  margin: 40px auto;
+}
+
+#controls {
+  margin-left: auto;
+  margin-right: auto;
+  width: fit-content;
+}
+
+#wordGuessField {
+  margin-left: auto;
+  margin-right: auto;
+  display: block;
+}
+
+#currentResults {
+  display: flex;
+  flex-direction: row;
+  width: fit-content;
+  margin: 0 auto;
+}
+
+#gameScore,
+#gameRank {
+  margin: 5px;
+}
+
+#gameScoreField {
+  width: 30px;
+}
+
+#gameRankField {
+  width: 100px;
+}
+
+.hide {
+  visibility: hidden;
+}
+
+#answers {
+  margin: 0 auto;
+  width: 200px;
+}
+
+#answersHdr {
+  margin-bottom: 0;
+  text-align: center;
+}
+
+:root {
+  /* Change this to change the appearance of the hexaons */
+  --hex-width: 70px;
+  --hex-between: 10px;
+  /* Other hexagon dimentions */
+  --hex-height: calc(var(--hex-width) / 1.73);
+  --hex-margin: calc(var(--hex-width) / 2);
+  --hex-border: calc(var(--hex-margin) / 1.73);
+  --hex-transition: all 0.2s ease;
+  /* Colors */
+  --color-hex-default: yellow;
+  --color-hex-hover: orange;
+}
+
+/* Hexagons */
+.hexagon-container {
+  display: grid;
+  grid-template-columns: var(--hex-width) var(--hex-width) var(--hex-width) var(--hex-width);
+  grid-auto-rows: calc(var(--hex-width) - 28.87px/2);
+  grid-gap: var(--hex-between) var(--hex-between);
+  padding-bottom: var(--hex-border);
+  width: fit-content;
+}
+
+.hexagon {
+  align-items: center;
+  background-color: var(--color-hex-default);
+  cursor: pointer;
+  display: flex;
+  fill: white;
+  height: var(--hex-height);
+  justify-content: center;
+  margin: var(--hex-border) 0;
+  position: relative;
+  transition: var(--hex-transition);
+  width: var(--hex-width);
+}
+
+.hexagon::after,
+.hexagon::before {
+  border-left: var(--hex-margin) solid transparent;
+  border-right: var(--hex-margin) solid transparent;
+  content: "";
+  left: 0;
+  position: absolute;
+  transition: var(--hex-transition);
+  width: 0;
+}
+
+.hexagon::after {
+  border-top: var(--hex-border) solid var(--color-hex-default);
+  top: 100%;
+  width: 0;
+}
+
+.hexagon::before {
+  border-bottom: var(--hex-border) solid var(--color-hex-default);
+  bottom: 100%;
+}
+
+.hexagon:hover {
+  background-color: var(--color-hex-hover);
+}
+
+.hexagon:hover::after,
+.hexagon:hover::before {
+  border-top-color: var(--color-hex-hover);
+  border-bottom-color: var(--color-hex-hover);
+}
+
+.hexagon:nth-child(8n + 5),
+.hexagon:nth-child(8n + 6),
+.hexagon:nth-child(8n + 7),
+.hexagon:nth-child(8n + 8) {
+  margin-left: calc(var(--hex-width) / 2 + var(--hex-between) / 2);
+}
