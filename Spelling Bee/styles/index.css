@@ -12,6 +12,14 @@ h1 {
   text-align: center;
 }
 
+#levelsHdr {
+  margin: 0 0 4px 0;
+}
+
+p {
+  margin: 0 0 0 6px;
+}
+
 .centerLetter,
 .outerLetter {
   font-size: large;
@@ -26,6 +34,10 @@ h1 {
   margin-left: auto;
   margin-right: auto;
   width: fit-content;
+}
+
+.control {
+  margin: 10px;
 }
 
 #wordGuessField {
@@ -43,7 +55,7 @@ h1 {
 
 #gameScore,
 #gameRank {
-margin: 5px;
+  margin: 20px;
 }
 
 #gameScoreField {
@@ -68,6 +80,13 @@ margin: 5px;
   text-align: center;
 }
 
+#submitPopup {
+  border-width: thin;
+  padding: 8px;
+  position: absolute;
+  top: 120px;
+}
+
 :root {
   /* Change this to change the appearance of the hexaons */
   --hex-width: 70px;
@@ -80,8 +99,10 @@ margin: 5px;
   --hex-transition: all 0.2s ease;
 
   /* Colors */
-  --color-hex-default: yellow;
-  --color-hex-hover: orange;
+  --color-hex-default: gray;
+  --color-hex-hover: lightgray;
+  --color-hex-cntrLtr-default: #ffff64; /* lighter yellow */
+  --color-hex-cntrLtr-hover: #cccc00; /* darker yellow */
 }
 
 /* Hexagons */
@@ -90,7 +111,7 @@ margin: 5px;
   grid-template-columns: var(--hex-width) var(--hex-width) var(--hex-width) var(
       --hex-width
     );
-  grid-auto-rows: calc(var(--hex-width) - 28.87px/2);
+  grid-auto-rows: calc(var(--hex-width) - 28.87px / 2);
   grid-gap: var(--hex-between) var(--hex-between);
   padding-bottom: var(--hex-border);
   width: fit-content;
@@ -113,7 +134,7 @@ margin: 5px;
 .hexagon::before {
   border-left: var(--hex-margin) solid transparent;
   border-right: var(--hex-margin) solid transparent;
-  content: "";
+  content: '';
   left: 0;
   position: absolute;
   transition: var(--hex-transition);
@@ -143,4 +164,25 @@ margin: 5px;
 .hexagon:nth-child(8n + 7),
 .hexagon:nth-child(8n + 8) {
   margin-left: calc(var(--hex-width) / 2 + var(--hex-between) / 2);
+}
+
+.centerLetter {
+  background-color: var(--color-hex-cntrLtr-default);
+}
+
+.centerLetter::after {
+  border-top: var(--hex-border) solid var(--color-hex-cntrLtr-default);
+}
+
+.centerLetter::before {
+  border-bottom: var(--hex-border) solid var(--color-hex-cntrLtr-default);
+}
+
+.centerLetter:hover {
+  background-color: var(--color-hex-cntrLtr-hover);
+}
+.centerLetter:hover::after,
+.centerLetter:hover::before {
+  border-top-color: var(--color-hex-cntrLtr-hover);
+  border-bottom-color: var(--color-hex-cntrLtr-hover);
 }
