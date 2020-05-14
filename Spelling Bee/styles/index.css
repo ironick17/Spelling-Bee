@@ -4,7 +4,7 @@
 **/
 
 body {
-  background: lightgoldenrodyellow;
+  background: white;
   font-family: sans-serif;
 }
 
@@ -99,10 +99,10 @@ p {
   --hex-transition: all 0.2s ease;
 
   /* Colors */
-  --color-hex-default: gray;
-  --color-hex-hover: lightgray;
-  --color-hex-cntrLtr-default: #ffff64; /* lighter yellow */
-  --color-hex-cntrLtr-hover: #cccc00; /* darker yellow */
+  --color-hex-default: #e6e6e6;
+  --color-hex-hover: #b1b1b1;
+  --color-hex-cntrLtr-default: #f8cd05; /* lighter yellow */
+  --color-hex-cntrLtr-hover: #e19d03; /* darker yellow */
 }
 
 /* Hexagons */

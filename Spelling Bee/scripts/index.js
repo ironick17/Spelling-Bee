@@ -81,13 +81,24 @@ function getSpellingBee() {
   return fetch(
     'https://cors-anywhere.herokuapp.com/https://www.nytimes.com/puzzles/spelling-bee'
     // The webpage comes back as a JS response object, so covert it before returning it.
-  ).then((response) => response.text());
+  )
+    .then((response) => response.text())
+    .catch((reason) => {
+      alert(`Error getting NY Times data: ${reason}`);
+      debugMode = true;
+      return nytimesHTMLText;
+    });
 }
 
 // The the string representing the webpage (HTML source) into  DOM object so we can call HTML/DOM methods on it.
 // It returns a prom
 function parseSpellingBee(htmlText) {
   return new Promise(function (resolve, reject) {
+    if (!htmlText.includes('<!DOCTYPE html>')) {
+      alert('Error parsing NY Times data.');
+      debugMode = true;
+      htmlText = nytimesHTMLText;
+    }
     let parser = new DOMParser();
     resolve(parser.parseFromString(htmlText, 'text/html'));
   });
@@ -154,6 +165,9 @@ function setupGame(gameInfo) {
   rotateLetters(outerLetterButtons);
   changeBtnLtr(document.querySelector('.centerLetter'), centerLetter);
   document.getElementById('gameRankLabel').onclick = showRankingInfo;
+  document.getElementById('gameHeader').innerText += debugMode
+    ? ' DEBUG MODE'
+    : ` ${gameData.displayWeekday}, ${gameData.displayDate}`;
 }
 
 function selectLetter() {
@@ -275,5 +289,6 @@ function getRank(score) {
 if (confirm('OK to Play. Cancel to Debug.')) {
   getSpellingBee().then(parseSpellingBee).then(getGameInfo).then(setupGame);
 } else {
+  debugMode = true;
   parseSpellingBee(nytimesHTMLText).then(getGameInfo).then(setupGame);
 }
