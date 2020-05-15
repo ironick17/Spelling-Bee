@@ -158,17 +158,18 @@ function setupGame(gameInfo) {
   outerLetters = gameData.outerLetters.map((letter) => letter.toUpperCase());
   centerLetter = gameData.centerLetter.toUpperCase();
   gameScore = 0;
+  gameRank = '';
   maxScore = 7; // Initialize to the pangram bonus amount.
   answerList = [];
-  popupDisplayTime = 1000;
-  popupLongMsgLength = 25;
-  popupLongMsgMultiplier = 3;
   gameWeekday = gameData.displayWeekday;
   gameDate = gameData.displayDate;
   initGameHooks();
 }
 
 function initGameHooks() {
+  popupDisplayTime = 1000;
+  popupLongMsgLength = 25;
+  popupLongMsgMultiplier = 3;
   outerLetterButtons = Array.from(
     document.querySelectorAll('.outerLetter')
   ).sort((a, b) => a.innerText[1] - b.innerText[1]);
@@ -176,6 +177,7 @@ function initGameHooks() {
   gameScoreField = document.getElementById('gameScoreField');
   gameScoreField.value = gameScore;
   gameRankField = document.getElementById('gameRankField');
+  gameRankField.value = gameRank;
   submitPopupModal = document.getElementById('submitPopup');
   document.getElementById('submit').onclick = submitHandler;
   document.getElementById('delete').onclick = deleteHandler;
@@ -348,8 +350,8 @@ function reloadGameClient() {
     answerList,
     gameScore,
     gameRank,
-    gameWeekday: gameWeekday,
-    gameDate: gameDate,
+    gameWeekday,
+    gameDate,
   } = JSON.parse(localStorage.gameState));
   initGameHooks();
 }
