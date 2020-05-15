@@ -5,6 +5,9 @@
 
 // Declare global variables. Will intialize them in a setup function.
 
+// Flag for playing a game using an old NY Times HTML string.
+var debugMode;
+
 // NY Times game data for the day.
 var gameData;
 
@@ -14,8 +17,8 @@ var gameAnswers;
 // Words that are pangrams (also appear in gameAnswers).
 var gamePangrams;
 
-// Max possible score for the puzzle. Initialize to the pangram bonus amount.
-var maxScore = 7;
+// Max possible score for the puzzle.
+var maxScore;
 
 // Array of game rankings/levels.
 var gameLevels;
@@ -30,10 +33,16 @@ var outerLetterButtons;
 var centerLetter;
 
 // List of words guessed so far.
-var answerList = [];
+var answerList;
 
 // Where the current word being typed appears on the page.
 var wordGuessField;
+
+// Current score.
+var gameScore;
+
+// Current rank.
+var gameRank;
 
 // Where the currenct score appears on the page.
 var gameScoreField;
@@ -45,11 +54,11 @@ var gameRankField;
 var submitPopupModal;
 
 // How long the popup modal dialog box should display (in milliseconds).
-var popupDisplayTime = 1000;
+var popupDisplayTime;
 
 // Messages longer than this will display for popupDisplayTime * popupLongMsgMultiplier
-var popupLongMsgLength = 25;
-var popupLongMsgMultiplier = 3;
+var popupLongMsgLength;
+var popupLongMsgMultiplier;
 
 /**
  * This section of functions are all invovled in getting information from the NY Times Spelling Bee and setting up this local game.
@@ -138,6 +147,7 @@ function setupGame(gameInfo) {
   gameData = gameInfo.gameData.today;
   gameAnswers = gameData.answers.map((letter) => letter.toUpperCase());
   gamePangrams = gameData.pangrams.map((letter) => letter.toUpperCase());
+  maxScore = 7;
   gameAnswers.forEach((answer) => {
     maxScore += answer.length < 5 ? 1 : answer.length;
   });
@@ -146,18 +156,31 @@ function setupGame(gameInfo) {
     Math.round((level[1] / 100) * maxScore),
   ]);
   outerLetters = gameData.outerLetters.map((letter) => letter.toUpperCase());
+  centerLetter = gameData.centerLetter.toUpperCase();
+  gameScore = 0;
+  maxScore = 7; // Initialize to the pangram bonus amount.
+  answerList = [];
+  popupDisplayTime = 1000;
+  popupLongMsgLength = 25;
+  popupLongMsgMultiplier = 3;
+  gameWeekday = gameData.displayWeekday;
+  gameDate = gameData.displayDate;
+  initGameHooks();
+}
+
+function initGameHooks() {
   outerLetterButtons = Array.from(
     document.querySelectorAll('.outerLetter')
   ).sort((a, b) => a.innerText[1] - b.innerText[1]);
-  centerLetter = gameData.centerLetter.toUpperCase();
   wordGuessField = document.getElementById('wordGuessField');
   gameScoreField = document.getElementById('gameScoreField');
-  gameScoreField.value = 0;
+  gameScoreField.value = gameScore;
   gameRankField = document.getElementById('gameRankField');
   submitPopupModal = document.getElementById('submitPopup');
-  document.querySelector('#submit').onclick = submitHandler;
-  document.querySelector('#delete').onclick = deleteHandler;
-  document.querySelector('#rotate').onclick = rotateHandler;
+  document.getElementById('submit').onclick = submitHandler;
+  document.getElementById('delete').onclick = deleteHandler;
+  document.getElementById('rotate').onclick = rotateHandler;
+  document.getElementById('save').onclick = saveHandler;
   document.querySelectorAll('.outerLetter').forEach((aButton) => {
     aButton.onclick = selectLetter;
   });
@@ -165,9 +188,10 @@ function setupGame(gameInfo) {
   rotateLetters(outerLetterButtons);
   changeBtnLtr(document.querySelector('.centerLetter'), centerLetter);
   document.getElementById('gameRankLabel').onclick = showRankingInfo;
+  displayAnswerList(answerList);
   document.getElementById('gameHeader').innerText += debugMode
     ? ' DEBUG MODE'
-    : ` ${gameData.displayWeekday}, ${gameData.displayDate}`;
+    : ` ${gameWeekday}, ${gameDate}`;
 }
 
 function selectLetter() {
@@ -176,6 +200,10 @@ function selectLetter() {
 
 function deleteHandler() {
   wordGuessField.value = wordGuessField.value.slice(0, -1);
+}
+
+function saveHandler() {
+  saveGameClient();
 }
 
 function submitHandler() {
@@ -192,6 +220,7 @@ function submitHandler() {
   displayModal(points).then((result) => {
     if (updateProgress(guess, Math.abs(points)))
       displayModal('You found them all!');
+    saveGameClient();
   });
 }
 
@@ -260,19 +289,23 @@ function guessValue(word) {
 }
 
 function updateProgress(word, points) {
-  let newScore = parseInt(gameScoreField.value) + points;
-  gameScoreField.value = newScore;
-  gameRankField.value = getRank(newScore);
+  gameScore = parseInt(gameScoreField.value) + points;
+  gameScoreField.value = gameScore;
+  gameRankField.value = getRank(gameScore);
   answerList.push(word);
   answerList.sort();
-  listHTML = document.createElement('ol');
+  displayAnswerList(answerList);
+  return answerList.length == gameAnswers.length;
+}
+
+function displayAnswerList(answerList) {
+  let listHTML = document.createElement('ol');
   answerList.forEach((word) => {
     let li = document.createElement('li');
     listHTML.appendChild(li);
     li.innerHTML = word;
   });
   document.getElementById('answerList').firstChild.replaceWith(listHTML);
-  return answerList.length == gameAnswers.length;
 }
 
 function getRank(score) {
@@ -283,12 +316,57 @@ function getRank(score) {
       return true;
     } else return false;
   });
-  return rank ? rank : gameLevels.slice(-1)[0][0];
+  gameRank = rank ? rank : gameLevels.slice(-1)[0][0];
+  return gameRank;
 }
 
-if (confirm('OK to Play. Cancel to Debug.')) {
-  getSpellingBee().then(parseSpellingBee).then(getGameInfo).then(setupGame);
-} else {
-  debugMode = true;
-  parseSpellingBee(nytimesHTMLText).then(getGameInfo).then(setupGame);
+function saveGameClient() {
+  let gameState = {
+    gameAnswers: gameAnswers,
+    gamePangrams: gamePangrams,
+    maxScore: maxScore,
+    gameLevels: gameLevels,
+    outerLetters: outerLetters,
+    centerLetter: centerLetter,
+    answerList: answerList,
+    gameScore: gameScore,
+    gameRank: gameRank,
+    gameWeekday: gameWeekday,
+    gameDate: gameDate,
+  };
+  localStorage.gameState = JSON.stringify(gameState);
 }
+
+function reloadGameClient() {
+  ({
+    gameAnswers,
+    gamePangrams,
+    maxScore,
+    gameLevels,
+    outerLetters,
+    centerLetter,
+    answerList,
+    gameScore,
+    gameRank,
+    gameWeekday: gameWeekday,
+    gameDate: gameDate,
+  } = JSON.parse(localStorage.gameState));
+  initGameHooks();
+}
+
+function gameStart() {
+  debugMode = false;
+  switch (document.getElementById('gameStart').returnValue) {
+    case 'Reload Game':
+      reloadGameClient();
+      break;
+    case 'New Game':
+      getSpellingBee().then(parseSpellingBee).then(getGameInfo).then(setupGame);
+      break;
+    case 'Debug Game':
+      debugMode = true;
+      parseSpellingBee(nytimesHTMLText).then(getGameInfo).then(setupGame);
+  }
+}
+
+document.getElementById('gameStart').showModal();
