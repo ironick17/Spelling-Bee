@@ -60,6 +60,9 @@ var popupDisplayTime;
 var popupLongMsgLength;
 var popupLongMsgMultiplier;
 
+// ?????
+var gameStartModal;
+
 /**
  * This section of functions are all invovled in getting information from the NY Times Spelling Bee and setting up this local game.
  * Since the fetch function is asynchronous (returns a promise), all but the last of these functions must be promises as well.
@@ -111,6 +114,23 @@ function parseSpellingBee(htmlText) {
     let parser = new DOMParser();
     resolve(parser.parseFromString(htmlText, 'text/html'));
   });
+}
+
+function getCloudData() {
+  return fetch('https://jsonbin.io/?????', {
+    method: 'GET',
+    headers: {
+      'Content-Type': 'image/jpeg',
+    },
+    mode: 'cors',
+    cache: 'default',
+  })
+    .then((response) => response.json())
+    .catch((reason) => {
+      alert(`Error getting JSONbin.io data: ${reason}`);
+      debugMode = true;
+      return {};
+    });
 }
 
 function getGameInfo(htmlTree) {
@@ -167,33 +187,15 @@ function setupGame(gameInfo) {
 }
 
 function initGameHooks() {
-  popupDisplayTime = 1000;
-  popupLongMsgLength = 25;
-  popupLongMsgMultiplier = 3;
-  outerLetterButtons = Array.from(
-    document.querySelectorAll('.outerLetter')
-  ).sort((a, b) => a.innerText[1] - b.innerText[1]);
-  wordGuessField = document.getElementById('wordGuessField');
-  gameScoreField = document.getElementById('gameScoreField');
   gameScoreField.value = gameScore;
-  gameRankField = document.getElementById('gameRankField');
   gameRankField.value = gameRank;
-  submitPopupModal = document.getElementById('submitPopup');
-  document.getElementById('submit').onclick = submitHandler;
-  document.getElementById('delete').onclick = deleteHandler;
-  document.getElementById('rotate').onclick = rotateHandler;
-  document.getElementById('save').onclick = saveHandler;
-  document.querySelectorAll('.outerLetter').forEach((aButton) => {
-    aButton.onclick = selectLetter;
-  });
-  document.querySelector('.centerLetter').onclick = selectLetter;
   rotateLetters(outerLetterButtons);
   changeBtnLtr(document.querySelector('.centerLetter'), centerLetter);
-  document.getElementById('gameRankLabel').onclick = showRankingInfo;
   displayAnswerList(answerList);
   document.getElementById('gameHeader').innerText += debugMode
     ? ' DEBUG MODE'
     : ` ${gameWeekday}, ${gameDate}`;
+  gameStartModal.style.visibility = 'hidden';
 }
 
 function selectLetter() {
@@ -232,6 +234,15 @@ function showRankingInfo() {
   displayModal(heading + lines.join('\n'));
 }
 
+// INCOMPLETE FUNCTION. yesterdayMyAnswers not defined yet.
+function showYesterday() {
+  let heading = `<h3 id="yesterdayHdr">Yesterday's Answers</h3>\n`;
+  let lines = gameInfo.yesterday.answers.map(
+    (answer) => `<p>${yesterdayMyAnswers.includes(answer) ? '*' : ''}answer</p>`
+  );
+  displayModal(heading + lines.join('\n'));
+}
+
 function rotateHandler() {
   rotateLetters(outerLetterButtons);
 }
@@ -264,9 +275,9 @@ function displayModal(message) {
   }
   return new Promise((resolve, reject) => {
     submitPopupModal.innerHTML = message;
-    submitPopupModal.showModal();
+    submitPopupModal.style.visibility = 'visible';
     setTimeout(() => {
-      submitPopupModal.close();
+      submitPopupModal.style.visibility = 'hidden';
       resolve('closed');
     }, popupDisplayTime * (message.length > popupLongMsgLength ? popupLongMsgMultiplier : 1));
   });
@@ -324,19 +335,46 @@ function getRank(score) {
 
 function saveGameClient() {
   let gameState = {
-    gameAnswers: gameAnswers,
-    gamePangrams: gamePangrams,
-    maxScore: maxScore,
-    gameLevels: gameLevels,
-    outerLetters: outerLetters,
-    centerLetter: centerLetter,
-    answerList: answerList,
-    gameScore: gameScore,
-    gameRank: gameRank,
-    gameWeekday: gameWeekday,
-    gameDate: gameDate,
+    gameAnswers,
+    gamePangrams,
+    maxScore,
+    gameLevels,
+    outerLetters,
+    centerLetter,
+    answerList,
+    gameScore,
+    gameRank,
+    gameWeekday,
+    gameDate,
+    timestamp: Date.now(),
   };
   localStorage.gameState = JSON.stringify(gameState);
+}
+
+function saveGameCloud() {
+  sameGameClient();
+  let gameState = {
+    gameAnswers,
+    gamePangrams,
+    maxScore,
+    gameLevels,
+    outerLetters,
+    centerLetter,
+    answerList,
+    gameScore,
+    gameRank,
+    gameWeekday,
+    gameDate,
+    timestamp: Date.now(),
+  };
+  let saveName = prompt('Who is saving this game?', 'anonymous') || 'anonymous';
+  return fetch('foo')
+    .then()
+    .catch((reason) => {
+      alert(`Error storing JSONbin.io data: ${reason}`);
+      debugMode = true;
+      return;
+    });
 }
 
 function reloadGameClient() {
@@ -352,15 +390,49 @@ function reloadGameClient() {
     gameRank,
     gameWeekday,
     gameDate,
+    timestamp,
   } = JSON.parse(localStorage.gameState));
-  initGameHooks();
 }
 
-function gameStart() {
+function reloadGameCloud(cloudData) {
+  let spellingBeeData = cloudData.spellingBee;
+  let gameState = spellingBeeData.gameState;
+  let gameStateDate = new Date(gameState.gameDate);
+  if (gameStateDate != new Date().setHours(0, 0, 0, 0)) {
+    alert(
+      "Game state saved to cloud is not for today's puzzle.\nUsing local saved state instead."
+    );
+    return;
+  }
+  if (timestamp > gameState.timestamp) {
+    confirm(
+      'Game state saved to cloud is older than local saved state.\nUse cloud saved state?'
+    );
+    return;
+  }
+  ({
+    gameAnswers,
+    gamePangrams,
+    maxScore,
+    gameLevels,
+    outerLetters,
+    centerLetter,
+    answerList,
+    gameScore,
+    gameRank,
+    gameWeekday,
+    gameDate,
+    timestamp,
+  } = gameState);
+}
+
+function gameStart(startAction) {
   debugMode = false;
-  switch (document.getElementById('gameStart').returnValue) {
+  switch (startAction) {
     case 'Reload Game':
       reloadGameClient();
+      //      getCloudData().then((cloudData) => {reloadGameCloud(); initGameHooks();});
+      initGameHooks();
       break;
     case 'New Game':
       getSpellingBee().then(parseSpellingBee).then(getGameInfo).then(setupGame);
@@ -371,4 +443,39 @@ function gameStart() {
   }
 }
 
-document.getElementById('gameStart').showModal();
+function dialogBtnHandler() {
+  // For some reason innerText = "", so I'm using innerHTML.
+  this.style.background = 'gray';
+  gameStart(this.innerHTML);
+}
+
+/**
+ * End of declarations (above), and beginning of execution.
+ */
+
+// Turn some of these into consts. ?????
+popupDisplayTime = 1000;
+popupLongMsgLength = 25;
+popupLongMsgMultiplier = 3;
+outerLetterButtons = Array.from(document.querySelectorAll('.outerLetter')).sort(
+  (a, b) => a.innerText[1] - b.innerText[1]
+);
+wordGuessField = document.getElementById('wordGuessField');
+gameScoreField = document.getElementById('gameScoreField');
+
+gameRankField = document.getElementById('gameRankField');
+
+submitPopupModal = document.getElementById('submitPopup');
+document.getElementById('submit').onclick = submitHandler;
+document.getElementById('delete').onclick = deleteHandler;
+document.getElementById('rotate').onclick = rotateHandler;
+document.getElementById('save').onclick = saveHandler;
+document.querySelectorAll('.outerLetter').forEach((aButton) => {
+  aButton.onclick = selectLetter;
+});
+document.querySelector('.centerLetter').onclick = selectLetter;
+document.getElementById('gameRankLabel').onclick = showRankingInfo;
+document.querySelectorAll('.dialogBtn').forEach((aButton) => {
+  aButton.onclick = dialogBtnHandler;
+});
+gameStartModal = document.getElementById('gameStart');

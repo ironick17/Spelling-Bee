@@ -81,10 +81,50 @@ p {
 }
 
 #submitPopup {
+  visibility: hidden;
+  background: white;
+  border-color: black;
+  z-index: 1;
+  position: absolute;
+  margin: auto;
   border-width: thin;
+  border-style: solid;
   padding: 8px;
   position: absolute;
-  top: 120px;
+  width: fit-content;
+  height: fit-content;
+  top: 0;
+  bottom: 0;
+  left: 0;
+  right: 0;
+}
+
+#gameStart {
+  background: white;
+  border-color: black;
+  z-index: 1;
+  position: absolute;
+  border-width: thin;
+  border-style: solid;
+  padding: 8px;
+  position: absolute;
+  margin: auto;
+  top: 0;
+  bottom: 0;
+  left: 0;
+  right: 0;
+}
+
+#startBtns {
+  position: absolute;
+  position: absolute;
+  width: fit-content;
+  height: fit-content;
+  top: 0;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  margin: auto;
 }
 
 :root {

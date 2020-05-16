@@ -13,15 +13,13 @@
   <body>
     <h1 id="gameHeader">Nick's Spelling Bee</h1>
 
-    <dialog id="gameStart" onClose="gameStart()">
-      <form method="dialog">
-        <menu>
-          <button value="Reload Game">Reload Game</button>
-          <button value="New Game">New Game</button>
-          <button value="Debug Game">Debug Game</button>
-        </menu>
-      </form>
-    </dialog>
+    <div class="dialog" id="gameStart">
+      <div id="startBtns">
+        <button class="dialogBtn" value="Reload Game">Reload Game</button>
+        <button class="dialogBtn" value="New Game">New Game</button>
+        <button class="dialogBtn" value="Debug Game">Debug Game</button>
+      </div>
+    </div>
 
     <input type="text" id="wordGuessField" readonly size="20" />
 
@@ -60,7 +58,7 @@
       <button class="control" id="save">Save</button>
       <button class="control" id="submit">Submit</button>
     </div>
-    <dialog class="popup" id="submitPopup">
+    <div class="popup" id="submitPopup">
       <!-- Normally this text is hidden. -->
       <h3 id="levelsHdr">Game Levels</h3>
       <p>Beginner (0)</p>
@@ -72,7 +70,7 @@
       <p>Great (68)</p>
       <p>Amazing (86)</p>
       <p>Genius (120)</p>
-    </dialog>
+    </div>
     <div id="currentResults">
       <div id="gameScore">
         <label for="gameScoreField">Score:</label>
