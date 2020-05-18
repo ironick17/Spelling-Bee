@@ -60,13 +60,14 @@ var popupDisplayTime;
 var popupLongMsgLength;
 var popupLongMsgMultiplier;
 
-// ?????
+// This is the HTML element that appears at the start of a game.
 var gameStartModal;
 
-// ?????
+// This is an object containing all of the information that needs to be saved in order
+// to resume a game.
 var gameState;
 
-// ?????
+// This is the millisecond time when the game was last saved (locally or in the cloud).
 var timestamp;
 
 /**
@@ -89,24 +90,28 @@ var timestamp;
  * time during the excution of an application and at many different locations in different functions comprising the app.
  *
  * One last insight. Promise chaining, which I use below, isn't anthing special. It just enables you to fire off a series of
- * async functions and then ?????
+ * async functions where the next function doesn't run until the previous one has resolved.
  **/
 
 // Get the Spelling Bee webpage.
 // fetch returns a promise wrapping a JS response object.
-// @@TODO: Add error handling in case webpage is not available.
-
 async function getSpellingBee() {
-  return fetch(
-    'https://cors-anywhere.herokuapp.com/https://www.nytimes.com/puzzles/spelling-bee'
-    // The webpage comes back as a JS response object, so covert it before returning it.
-  )
-    .then((response) => response.text())
-    .catch((reason) => {
-      alert(`Error getting NY Times data: ${reason}`);
-      debugMode = true;
-      return nytimesHTMLText;
-    });
+  return (
+    fetch(
+      'https://cors-anywhere.herokuapp.com/https://www.nytimes.com/puzzles/spelling-bee'
+      // The webpage comes back as a JS response object, so covert it before returning it.
+    )
+      // Note that this then method will return a new promise, since the .text method
+      // of a response object returns a promise.
+      .then((response) => response.text())
+      // Even this catch returns a promise, because a all catches are just thens, and thens
+      // wrap their return results in a promise.
+      .catch((reason) => {
+        alert(`Error getting NY Times data: ${reason}`);
+        debugMode = true;
+        return nytimesHTMLText;
+      })
+  );
 }
 
 // The the string representing the webpage (HTML source) into  DOM object so we can call HTML/DOM methods on it.
@@ -222,7 +227,7 @@ function showRankingInfo() {
   displayModal(heading + lines.join('\n'));
 }
 
-// INCOMPLETE FUNCTION. yesterdayMyAnswers not defined yet.
+// INCOMPLETE FUNCTION. yesterdayMyAnswers not defined yet. ?????
 function showYesterday() {
   let heading = `<h3 id="yesterdayHdr">Yesterday's Answers</h3>\n`;
   let lines = gameInfo.yesterday.answers.map(
@@ -334,7 +339,6 @@ function saveGameClient() {
     gameRank,
     gameWeekday,
     gameDate,
-    // Setting timestamp twice, once local and once cloud. Fix. ?????
     timestamp: Date.now(),
   };
   localStorage.gameState = JSON.stringify(gameState);
@@ -374,8 +378,6 @@ async function setCloudData(cloudData) {
     })
     .catch((reason) => {
       alert(`Error storing JSONbin.io data: ${reason}`);
-      debugMode = true;
-      // need this to be a promise. Fix. ?????
       return false;
     });
 }
@@ -428,7 +430,6 @@ function getCloudData() {
     .then((response) => response.json())
     .catch((reason) => {
       alert(`Error getting JSONbin.io data: ${reason}`);
-      debugMode = true;
       // this catch returns a promise whose resolution value is {}
       return {};
     });
@@ -486,6 +487,12 @@ function reloadGameCloud(cloudData) {
 
 function gameStart(startAction) {
   debugMode = false;
+  // Add code to get player name at the beginning of the game.
+  // With the name get cloud data and if it is from yesterday,
+  // store yesterday's game state in a global variable that
+  // can be used to show yesterday's results.
+  // Also need to add code to save to cloud to save yesterday's
+  // game state along with today's.
   switch (startAction) {
     case 'Reload Game':
       getCloudData().then((cloudData) => {
