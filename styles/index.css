@@ -38,6 +38,9 @@ p {
 
 .control {
   margin: 10px;
+  border-color: black;
+  border-width: thin;
+  background-color: white;
 }
 
 #wordGuessField {
@@ -108,6 +111,7 @@ p {
   background: white;
   border-color: black;
   display: flex;
+  flex-direction: column;
   z-index: 1;
   justify-content: center;
   align-items: center;
@@ -119,19 +123,15 @@ p {
   position: absolute;
 }
 
-/*
 #startBtns {
-  position: absolute;
-  position: absolute;
-  width: fit-content;
-  height: fit-content;
-  top: 0;
-  bottom: 0;
-  left: 0;
-  right: 0;
-  margin: auto;
+  margin: 10px;
 }
-*/
+
+#dialogBtn {
+  border-color: black;
+  border-width: thin;
+  background-color: white;
+}
 
 :root {
   /* Change this to change the appearance of the hexaons */

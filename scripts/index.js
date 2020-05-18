@@ -70,6 +70,9 @@ var gameState;
 // This is the millisecond time when the game was last saved (locally or in the cloud).
 var timestamp;
 
+// The name of the person playing on this device. Used for saving and reloading games for different players.
+var playerName;
+
 /**
  * This section of functions are all invovled in getting information from the NY Times Spelling Bee and setting up this local game.
  * Since the fetch function is asynchronous (returns a promise), all but the last of these functions must be promises as well.
@@ -107,7 +110,7 @@ async function getSpellingBee() {
       // Even this catch returns a promise, because a all catches are just thens, and thens
       // wrap their return results in a promise.
       .catch((reason) => {
-        alert(`Error getting NY Times data: ${reason}`);
+        alert(`Error: Can't get NY Times data: ${reason}`);
         debugMode = true;
         return nytimesHTMLText;
       })
@@ -118,7 +121,7 @@ async function getSpellingBee() {
 function parseSpellingBee(htmlText) {
   if (!htmlText.includes('<!DOCTYPE html>')) {
     alert(
-      'Error parsing NY Times data. Using old NY Times data for debugging.'
+      "Error: Can't parse  NY Times data. Using old NY Times data for debugging."
     );
     debugMode = true;
     htmlText = nytimesHTMLText;
@@ -184,9 +187,10 @@ function initGameHooks() {
   rotateLetters(outerLetterButtons);
   changeBtnLtr(document.querySelector('.centerLetter'), centerLetter);
   displayAnswerList(answerList);
-  document.getElementById('gameHeader').innerText += debugMode
-    ? ' DEBUG MODE'
-    : ` ${gameWeekday}, ${gameDate}`;
+  let header = `${playerName[0].toUpperCase()}${playerName.slice(1)}'s ${
+    document.getElementById('gameHeader').innerText
+  } ${debugMode ? 'DEBUG MODE' : `${gameWeekday}, ${gameDate}`}`;
+  document.getElementById('gameHeader').innerText = header;
   gameStartModal.style.visibility = 'hidden';
 }
 
@@ -340,19 +344,19 @@ function saveGameClient() {
 }
 
 function updateCloudData(cloudData) {
-  let saveName = prompt('Who is saving this game?', 'anonymous') || 'anonymous';
+  // Need to handle Cancel button differently. ?????
   if (cloudData == {}) {
-    alert('Cloud data not found. Reinitializing.');
+    alert('Error: Cloud data not found. Reinitializing.');
     cloudData = {};
   }
   if (!cloudData.hasOwnProperty('spellingBee')) {
-    alert('Cloud data not found. Reinitializing.');
+    alert('Error: Cloud data not found. Reinitializing.');
     cloudData.spellingBee = {};
   }
-  if (!cloudData.spellingBee.hasOwnProperty(saveName)) {
-    cloudData.spellingBee[saveName] = {};
+  if (!cloudData.spellingBee.hasOwnProperty(playerName)) {
+    cloudData.spellingBee[playerName] = {};
   }
-  cloudData.spellingBee[saveName].gameState = gameState;
+  cloudData.spellingBee[playerName].gameState = gameState;
   return cloudData;
 }
 
@@ -372,19 +376,21 @@ async function setCloudData(cloudData) {
       return responseJSON.then((response) => response.success);
     })
     .catch((reason) => {
-      alert(`Error storing JSONbin.io data: ${reason}`);
+      alert(`Error: Can't store JSONbin.io data: ${reason}`);
       return false;
     });
 }
 
 function saveHandler() {
-  saveGameCloud().then((response) =>
+  this.style.backgroundColor = 'gray';
+  saveGameCloud().then((response) => {
     displayModal(
       response
         ? 'Game saved!'
         : 'Game saved locally, but failed to save to cloud.'
-    )
-  );
+    );
+    this.style.backgroundColor = 'white';
+  });
 }
 
 async function saveGameCloud() {
@@ -424,23 +430,22 @@ function getCloudData() {
   })
     .then((response) => response.json())
     .catch((reason) => {
-      alert(`Error getting JSONbin.io data: ${reason}`);
+      alert(`Error: Can't get JSONbin.io data: ${reason}`);
       // this catch returns a promise whose resolution value is {}
       return {};
     });
 }
 
 function reloadGameCloud(cloudData) {
-  let saveName = prompt('Who saved this game?', 'anonymous') || 'anonymous';
   let gameState = reloadGameClient();
   let spellingBeeData = cloudData.spellingBee || {};
-  let gameStateCloud = (spellingBeeData[saveName] || {}).gameState;
+  let gameStateCloud = (spellingBeeData[playerName] || {}).gameState;
   if (gameStateCloud == undefined) {
     if (gameState == {}) {
       return false;
     }
     alert(
-      'No Spelling Bee Game State stored in cloud.\nUsing local saved state instead.'
+      'Warning: No Spelling Bee Game State stored in cloud.\nUsing local saved state instead.'
     );
     return true;
   }
@@ -458,7 +463,7 @@ function reloadGameCloud(cloudData) {
     timestamp &&
     timestamp > gameStateCloud.timestamp &&
     !confirm(
-      'Game state saved to cloud is older than local saved state.\nUse cloud saved state?'
+      'Warning: Game state saved to cloud is older\nthan local saved state.\nUse cloud saved state?'
     )
   )
     return true;
@@ -488,13 +493,14 @@ function gameStart(startAction) {
   // can be used to show yesterday's results.
   // Also need to add code to save to cloud to save yesterday's
   // game state along with today's.
+  playerName = document.getElementById('playerInputField').value || 'anonymous';
   switch (startAction) {
     case 'Reload Game':
       getCloudData().then((cloudData) => {
         if (reloadGameCloud(cloudData)) {
           initGameHooks();
         } else {
-          alert('No cloud or local saved state.\nStarting new game.');
+          alert('Warning: No cloud or local saved state.\nStarting new game.');
           // Can't drop down to case 'New Game' because this is in a then function.
           getSpellingBee()
             .then(parseSpellingBee)
@@ -514,7 +520,7 @@ function gameStart(startAction) {
 
 function dialogBtnHandler() {
   // For some reason innerText = "", so I'm using innerHTML.
-  this.style.background = 'gray';
+  this.style.backgroundColor = 'gray';
   gameStart(this.innerHTML);
 }
 

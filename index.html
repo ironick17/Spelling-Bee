@@ -11,9 +11,15 @@
   </head>
 
   <body>
-    <h1 id="gameHeader">Nick's Spelling Bee</h1>
+    <h1 id="gameHeader">Spelling Bee</h1>
 
     <div class="dialog" id="gameStart">
+      <div id="playerInput">
+        <label for="playerInputField">
+          Enter Player Name (one word):
+        </label>
+        <input class="text" id="playerInputField" value="anonymous" />
+      </div>
       <div id="startBtns">
         <button class="dialogBtn" value="Reload Game">Reload Game</button>
         <button class="dialogBtn" value="New Game">New Game</button>
