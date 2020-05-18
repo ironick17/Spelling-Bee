@@ -128,33 +128,31 @@ function parseSpellingBee(htmlText) {
 }
 
 function getGameInfo(htmlTree) {
-  return new Promise((resolve, reject) => {
-    let gameData;
-    let scripts = Array.from(htmlTree.getElementsByTagName('script'));
-    scripts.some((script) => {
-      let text = script.innerText;
-      let pos = text.search('window.gameData = {');
-      if (0 <= pos && pos < 10) {
-        gameData = JSON.parse(text.substring(text.search('{')));
-        return true;
-      }
-      return false;
-    });
-    resolve({
-      gameData: gameData,
-      gameLevels: [
-        ['Beginner', 0],
-        ['Good Start', 2],
-        ['Moving Up', 5],
-        ['Good', 8],
-        ['Solid', 15],
-        ['Nice', 25],
-        ['Great', 40],
-        ['Amazing', 50],
-        ['Genius', 70],
-      ],
-    });
+  let gameData;
+  let scripts = Array.from(htmlTree.getElementsByTagName('script'));
+  scripts.some((script) => {
+    let text = script.innerText;
+    let pos = text.search('window.gameData = {');
+    if (0 <= pos && pos < 10) {
+      gameData = JSON.parse(text.substring(text.search('{')));
+      return true;
+    }
+    return false;
   });
+  return {
+    gameData: gameData,
+    gameLevels: [
+      ['Beginner', 0],
+      ['Good Start', 2],
+      ['Moving Up', 5],
+      ['Good', 8],
+      ['Solid', 15],
+      ['Nice', 25],
+      ['Great', 40],
+      ['Amazing', 50],
+      ['Genius', 70],
+    ],
+  };
 }
 
 function setupGame(gameInfo) {
@@ -497,6 +495,7 @@ function gameStart(startAction) {
           initGameHooks();
         } else {
           alert('No cloud or local saved state.\nStarting new game.');
+          // Can't drop down to case 'New Game' because this is in a then function.
           getSpellingBee()
             .then(parseSpellingBee)
             .then(getGameInfo)
@@ -509,7 +508,7 @@ function gameStart(startAction) {
       break;
     case 'Debug Game':
       debugMode = true;
-      parseSpellingBee(nytimesHTMLText).then(getGameInfo).then(setupGame);
+      setupGame(getGameInfo(parseSpellingBee(nytimesHTMLText)));
   }
 }
 
