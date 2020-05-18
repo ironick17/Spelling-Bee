@@ -124,7 +124,7 @@ function parseSpellingBee(htmlText) {
     htmlText = nytimesHTMLText;
   }
   let parser = new DOMParser();
-  resolve(parser.parseFromString(htmlText, 'text/html'));
+  retrun(parser.parseFromString(htmlText, 'text/html'));
 }
 
 function getGameInfo(htmlTree) {
