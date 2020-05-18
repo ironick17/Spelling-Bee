@@ -114,20 +114,17 @@ async function getSpellingBee() {
   );
 }
 
-// The the string representing the webpage (HTML source) into  DOM object so we can call HTML/DOM methods on it.
-// It returns a prom
+// The the string representing the webpage (HTML source) into DOM object so we can call HTML/DOM methods on it.
 function parseSpellingBee(htmlText) {
-  return new Promise((resolve, reject) => {
-    if (!htmlText.includes('<!DOCTYPE html>')) {
-      alert(
-        'Error parsing NY Times data. Using old NY Times data for debugging.'
-      );
-      debugMode = true;
-      htmlText = nytimesHTMLText;
-    }
-    let parser = new DOMParser();
-    resolve(parser.parseFromString(htmlText, 'text/html'));
-  });
+  if (!htmlText.includes('<!DOCTYPE html>')) {
+    alert(
+      'Error parsing NY Times data. Using old NY Times data for debugging.'
+    );
+    debugMode = true;
+    htmlText = nytimesHTMLText;
+  }
+  let parser = new DOMParser();
+  resolve(parser.parseFromString(htmlText, 'text/html'));
 }
 
 function getGameInfo(htmlTree) {
