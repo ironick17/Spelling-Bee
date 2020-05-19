@@ -13,6 +13,8 @@ html {
   margin: 0;
 }
 
+/**
+This section is to draw reference lines for debugging screen size issues.
 #hb {
   width: 972px;
   height: 10px;
@@ -32,6 +34,7 @@ html {
   left: 180px;
   top: 0;
 }
+**/
 
 h1 {
   text-align: center;
