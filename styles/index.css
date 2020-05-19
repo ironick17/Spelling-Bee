@@ -6,10 +6,36 @@
 body {
   background: white;
   font-family: sans-serif;
+  height: 636px;
+  width: 356px;
+  border-style: solid;
+  position: absolute;
+  margin: 0;
+}
+
+#hb {
+  width: 360px;
+  height: 10px;
+  background-color: red;
+  z-index: 2;
+  position: absolute;
+  top: 300px;
+  left: 0;
+}
+
+#vb {
+  height: 640px;
+  width: 10px;
+  background-color: red;
+  z-index: 3;
+  position: absolute;
+  left: 180px;
+  top: 0;
 }
 
 h1 {
   text-align: center;
+  font-size: medium;
 }
 
 #levelsHdr {
@@ -121,6 +147,14 @@ p {
   left: 0;
   right: 0;
   position: absolute;
+}
+
+#playerInput {
+  width: 200px;
+}
+
+#playerInputLabel {
+  font-size: small;
 }
 
 #startBtns {
