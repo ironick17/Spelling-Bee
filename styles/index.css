@@ -3,20 +3,6 @@
  * - Add any styles you want here!
 **/
 
-html {
-  background: white;
-  font-family: sans-serif;
-  /* 90% of 1920(h)x1080(w)
-  height: 1728px;
-  width: 972px;
-  */
-  height: 640;
-  width: 360;
-  border-style: solid;
-  position: absolute;
-  margin: 0;
-}
-
 /**
 This section is to draw reference lines for debugging screen size issues.
 #hb {
