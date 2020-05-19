@@ -25,6 +25,9 @@ This section is to draw reference lines for debugging screen size issues.
   top: 0;
 }
 **/
+body {
+  font-family: sans-serif;
+}
 
 h1 {
   text-align: center;
