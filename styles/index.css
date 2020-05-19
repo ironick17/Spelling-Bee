@@ -6,15 +6,15 @@
 body {
   background: white;
   font-family: sans-serif;
-  height: 636px;
-  width: 356px;
+  height: 1728px; /* 90% 0f 1920 pixels */
+  width: 972px; /* 90% of 1080 pixels */
   border-style: solid;
   position: absolute;
   margin: 0;
 }
 
 #hb {
-  width: 360px;
+  width: 972px;
   height: 10px;
   background-color: red;
   z-index: 2;
@@ -24,7 +24,7 @@ body {
 }
 
 #vb {
-  height: 640px;
+  height: 1728px;
   width: 10px;
   background-color: red;
   z-index: 3;
