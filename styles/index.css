@@ -6,8 +6,12 @@
 html {
   background: white;
   font-family: sans-serif;
-  height: 1728px; /* 90% 0f 1920 pixels */
-  width: 972px; /* 90% of 1080 pixels */
+  /* 90% of 1920(h)x1080(w)
+  height: 1728px;
+  width: 972px;
+  */
+  height: 640;
+  width: 360;
   border-style: solid;
   position: absolute;
   margin: 0;
