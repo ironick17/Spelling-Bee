@@ -229,9 +229,6 @@ function setupGame(gameInfo) {
     gameData = gameInfo.gameData.today;
     // We store/display all game letters and words in uppercase.
     gameAnswers = gameData.answers.map((letter) => letter.toUpperCase());
-    gameAnswersYesterday = gameInfo.gameData.yesterday.answers.map((letter) =>
-      letter.toUpperCase()
-    );
     // Calculate the maximum possible score so we can calculate
     // rank levels.
     maxScore = 7;
@@ -251,6 +248,9 @@ function setupGame(gameInfo) {
     // It's a hack because it doesn't work in the general case.
     // It gets yesterday's guesses from localStorage on this device,
     // not from the cloud.
+    // Note that answerListYesterday is not one of the global variables
+    // stored in gameState, but we initialize it in this section before
+    // we reset answerList and gameDate.
     answerListYesterday = [];
     let yesterday = new Date();
     yesterday.setHours(0, 0, 0, 0);
@@ -272,6 +272,12 @@ function setupGame(gameInfo) {
     /**
      * End initializing all gameState global variables.
      */
+    // Yesterday's game answers are only available when we start from a new
+    // game or the canned game. If we start from a reload, this statement
+    // is never reached.
+    gameAnswersYesterday = gameInfo.gameData.yesterday.answers.map((letter) =>
+      letter.toUpperCase()
+    );
   } catch (error) {
     alert(
       `Error: NY Times window.gameData structure changed.\nUsing old NY Times data for debugging.
@@ -654,6 +660,11 @@ function reloadGameCloud(cloudData) {
 popupDisplayTime = 1000;
 popupLongMsgLength = 25;
 popupLongMsgMultiplier = 3;
+// When the game is started with a reload, the saved state (gameState)
+// doesn't store yesterday's answers. They are only retrieved from HTML
+// when a new game is started. If a player clicks on "Score" after
+// game is started from a reload, only the header will appear.
+gameAnswersYesterday = [];
 outerLetterButtons = Array.from(document.querySelectorAll('.outerLetter')).sort(
   (a, b) => a.innerText[1] - b.innerText[1]
 );
