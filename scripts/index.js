@@ -202,11 +202,11 @@ function setupGame(gameInfo) {
     gameAnswersYesterday = gameInfo.gameData.yesterday.answers.map((letter) =>
       letter.toUpperCase()
     );
+    maxScore = 7;
     gameAnswers.forEach((answer) => {
       maxScore += answer.length < 5 ? 1 : answer.length;
     });
     gamePangrams = gameData.pangrams.map((letter) => letter.toUpperCase());
-    maxScore = 7; // Initialize to the pangram bonus amount.
     gameLevels = gameInfo.gameLevels.map((level) => [
       level[0],
       Math.round((level[1] / 100) * maxScore),
