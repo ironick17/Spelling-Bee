@@ -7,9 +7,13 @@
 // I probably should wrap this whole thing in a closure so I don't
 // pollute the namespace of the browser. I should also just turn all
 // these global varibles into properties of an object referenced
-// through a single global variable.
+// through a single global variable. eg gameState.
 
 // Flag for playing a game using an old NY Times HTML string.
+// The flag isn't really used for anything other than initializing
+// the main app header to put "DEBUGMODE" in the header. I
+// suppose it is useful to check in the console to see if something
+// went wrong.
 var debugMode;
 
 // NY Times game data for the day.
@@ -19,7 +23,7 @@ var gameData;
  * This section is declaring
  * the variables that constitue the game state
  * that is saved across instances of playing.
- */
+ **/
 // Words we are guessing.
 var gameAnswers;
 
@@ -47,22 +51,24 @@ var gameScore;
 // Current rank.
 var gameRank;
 
+// The day of the week, eg monday, tuesday
 var gameWeekday;
 
+// The (string) date, eg "May 18, 2020"
 var gameDate;
 
 // This is an object containing all of the information that needs to be saved in order
 // to resume a game.
 var gameState;
 
+// This is the millisecond time when the game was last saved (locally or in the cloud).
+var timestamp;
+
 /**
  * End of section declaring
  * the variables that constitue the game state
  * that is saved across instances of playing.
- */
-
-// This is the millisecond time when the game was last saved (locally or in the cloud).
-var timestamp;
+ **/
 
 // List of buttons associated with the optional letters.
 var outerLetterButtons;
@@ -99,37 +105,52 @@ var answerListYesterday;
 var gameAnswersYesterday;
 
 /**
- * This app relies on getting information from the NY Times Spelling Bee via HTTP. I use the fetch function for this.
- * I also use fetch for accessing my json in the cloud at jsonbin.io.
+ * This app relies on getting information from the NY Times Spelling Bee via
+ * HTTP. I use the fetch function for this. I also use fetch for accessing my
+ * json in the cloud at jsonbin.io.
  *
- * Since the fetch function is asynchronous function that returns a promise it took me quite a while to figure out JS promises.
+ * Since the fetch function is asynchronous function that returns a promise it
+ * took me quite a while to figure out JS promises.
  *
- * Here is a short description of how I currently think about JS promises:
- * I think a promise as a special kind of JS object or function. Usually to access the value of an object you simply use its name
- * in an expression, eg "let foo = myThing", and the access the result of a function you simply use its name followed by "()", eg
- * "let foo = myThing()". But with a promise, using its name in an expression is like using the name of a function NOT followed
- * by "()", all it does is access the function object itself, not invoke it for a  return value, eg "let foo = myFunction".
- * The ONLY way to access the value returned by a promise is to use the method ".then". This method isn't the typical accessor method, eg
- * "let foo = myThing.getValue", because the .then method actually takes a callback function as an argument. It is this callback
- * function that will be passed the value/result of the promise. What's cool about the .then method is that you can invoke it
- * on the promise whenever you want, eg even LONG AFTER the promise has been resolved. This is VERY different from a normal
- * function. With a normal function, you can only get its return result ONCE.
+ * Here is a short description of how I currently think about JS promises: I
+ * think a promise as a special kind of JS object or function. Usually to access
+ * the value of an object you simply use its name in an expression, eg "let foo
+ * = myThing", and the access the result of a function you simply use its name
+ * followed by "()", eg "let foo = myThing()". But with a promise, using its
+ * name in an expression is like using the name of a function NOT followed by
+ * "()", all it does is access the function object itself, not invoke it for a
+ * return value, eg "let foo = myFunction". The ONLY way to access the value
+ * returned by a promise is to use the method ".then". This method isn't the
+ * typical accessor method, eg "let foo = myThing.getValue", because the .then
+ * method actually takes a callback function as an argument. It is this callback
+ * function that will be passed the value/result of the promise. What's cool
+ * about the .then method is that you can invoke it on the promise whenever you
+ * want, eg even LONG AFTER the promise has been resolved. This is VERY
+ * different from a normal function. With a normal function, you can only get
+ * its return result ONCE.
  *
- * At this point, I'll introduce the term "promissory". I call a function that is actually a promise a "promissory function" and
- * likewise for "promissory object". Thus, the cool thing about a promissory function is that its result can be accessed at any
- * time during the excution of an application and at many different locations in different functions comprising the app. I
- * recently discovered that the official name for what I call a promissory, is a thennable: A thennable is an object that defines
- * a then method.
+ * At this point, I'll introduce the term "promissory". I call a function that
+ * is actually a promise a "promissory function" and likewise for "promissory
+ * object". Thus, the cool thing about a promissory function is that its result
+ * can be accessed at any time during the excution of an application and at many
+ * different locations in different functions comprising the app. I recently
+ * discovered that the official name for what I call a promissory, is a
+ * thennable: A thennable is an object that defines a then method.
  *
- * One last insight. Promise chaining, which I use below, isn't anthing special. It just enables you to fire off a series of
- * async functions where the next function doesn't run until the previous one has resolved. An even bigger insight is that the
- * function passed as an argument to the .then method DOES NOT have to be asynch. Invoking the .then method returns a promise,
- * so the regular, synchronous function is now wrapped in a promise, so the only way to access its return value is to invoke
- * ITS .then method. This is the basis of .then chaining.
+ * One last insight. Promise chaining, which I use below, isn't anthing special.
+ * It just enables you to fire off a series of async functions where the next
+ * function doesn't run until the previous one has resolved. An even bigger
+ * insight is that the function passed as an argument to the .then method DOES
+ * NOT have to be asynch. Invoking the .then method returns a promise, so the
+ * regular, synchronous function is now wrapped in a promise, so the only way to
+ * access its return value is to invoke ITS .then method. This is the basis of
+ * .then chaining.
  **/
 
 // Get the Spelling Bee webpage.
-// fetch returns a promise wrapping a JS response object.
+// If anything goes wrong, return our canned NY Times HTML string.
+// I use an http proxy (...herokuapp.com) to get around the cors (cross-origin requests)
+// problem.
 async function getSpellingBee() {
   return (
     fetch(
@@ -149,8 +170,9 @@ async function getSpellingBee() {
   );
 }
 
-// The the string representing the webpage (HTML source) into DOM object so we can call HTML/DOM methods on it.
+// Parse the  string representing the webpage (HTML source) into document object so we can call HTML/DOM methods on it.
 function parseSpellingBee(htmlText) {
+  // If we can't find this substring, then we got back gibberish from the NY Times website.
   if (!htmlText.includes('<!DOCTYPE html>')) {
     alert(
       "Error: Can't parse NY Times data./nUsing old NY Times data for debugging."
@@ -162,6 +184,12 @@ function parseSpellingBee(htmlText) {
   return parser.parseFromString(htmlText, 'text/html');
 }
 
+// Look for the script element in the document where the assignment of the gameData JSON object occurs,
+// then get the string representation of that object and parse it into a real JSON object.
+// Return an object containing both the game data from the NY Times web page and an array
+// representing the percentages of the max score mapped to each rank name.
+// Originally I was going to get the gameLevels from the website, but they are in a JS
+// file, not the HTML page.
 function getGameInfo(htmlTree) {
   let gameData;
   let scripts = Array.from(htmlTree.getElementsByTagName('script'));
@@ -190,6 +218,7 @@ function getGameInfo(htmlTree) {
   };
 }
 
+// This initializes all the gameState global variables.
 function setupGame(gameInfo) {
   try {
     // This reload is primarily so that I can get yesterday's guessed answers.
@@ -198,57 +227,125 @@ function setupGame(gameInfo) {
      * Begin initializing all gameState global variables
      */
     gameData = gameInfo.gameData.today;
+    // We store/display all game letters and words in uppercase.
     gameAnswers = gameData.answers.map((letter) => letter.toUpperCase());
     gameAnswersYesterday = gameInfo.gameData.yesterday.answers.map((letter) =>
       letter.toUpperCase()
     );
+    // Calculate the maximum possible score so we can calculate
+    // rank levels.
     maxScore = 7;
     gameAnswers.forEach((answer) => {
       maxScore += answer.length < 5 ? 1 : answer.length;
     });
     gamePangrams = gameData.pangrams.map((letter) => letter.toUpperCase());
+    // Use the pecentage in each rank level array to calculate the score
+    // required to reach a given rank.
     gameLevels = gameInfo.gameLevels.map((level) => [
       level[0],
       Math.round((level[1] / 100) * maxScore),
     ]);
     outerLetters = gameData.outerLetters.map((letter) => letter.toUpperCase());
     centerLetter = gameData.centerLetter.toUpperCase();
+    // A simple hack to get the correct guesses from yesterday's play.
+    // It's a hack because it doesn't work in the general case.
+    // It gets yesterday's guesses from localStorage on this device,
+    // not from the cloud.
     answerListYesterday = [];
     let yesterday = new Date();
     yesterday.setHours(0, 0, 0, 0);
     yesterday.setDate(new Date().getDate() - 1);
+    // If the global variable gameDate is defined and is yesterday's date, then the guesses
+    // stored on this device are the correct guessed answers for yesterday.
     if (gameDate && new Date(gameDate).getTime() == yesterday.getTime()) {
       answerListYesterday = answerList || [];
     }
+    // Reset the answerList for today's game AFTER we copy it to answerListYesterday!
     answerList = [];
     gameScore = 0;
     gameRank = '';
+    // Reset the weekday and date to the values from the NY Times webpage.
     gameWeekday = gameData.displayWeekday;
     gameDate = gameData.displayDate;
+    // Stamp the time (though we set it again when saving to localStorage).
     timestamp = Date.now();
     /**
      * End initializing all gameState global variables.
      */
   } catch (error) {
     alert(
-      'Error: NY Times window.gameData structure changed.\nUsing old NY Times data for debugging.'
+      `Error: NY Times window.gameData structure changed.\nUsing old NY Times data for debugging.
+      Error message: ${error}`
     );
     debugMode = true;
+    // Recurse using canned HTML text to start with.
+    // Note that if the problem is not with the HTML but in the code
+    // of setupGame, then this will cause an infitnite recursion.
+    // This is a bit of a hack, but it's too hairy to fix for now.
     setupGame(getGameInfo(parseSpellingBee(nytimesHTMLText)));
   }
 }
 
+// I broke out this function so that when we load from the cloud/
+// local, we only need to call this function. It reintializes everything
+// from the current global variables representing gameState.
 function initGameHooks() {
   gameScoreField.value = gameScore;
   gameRankField.value = gameRank;
   rotateLetters(outerLetterButtons);
   changeBtnLtr(document.querySelector('.centerLetter'), centerLetter);
   displayAnswerList(answerList);
-  let header = `${playerName[0].toUpperCase()}${playerName.slice(1)}'s ${
+  // The main game header uses the player name entered at the start
+  // of the game. It uses "DEBUG MODE" instead of a date if the
+  // game was started in debug mode.
+  let header1 = `${playerName[0].toUpperCase()}${playerName.slice(1)}'s ${
     document.getElementById('gameHeader').innerText
-  } ${debugMode ? 'DEBUG MODE' : `${gameWeekday}, ${gameDate}`}`;
-  document.getElementById('gameHeader').innerText = header;
+  }`;
+  let header2 = `${debugMode ? 'DEBUG MODE' : `${gameWeekday}, ${gameDate}`}`;
+  document.getElementById('gameHeader').innerText = header1;
+  document.getElementById('gameDateHdr').innerText = header2;
   gameStartModal.style.visibility = 'hidden';
+}
+
+// A little helper function for the wrapped calls to parse
+// the HTML, get the JSON object out of it, and initialize
+// the global gameState variables.
+function prepareGame(htmlString) {
+  return setupGame(getGameInfo(parseSpellingBee(htmlString)));
+}
+
+// This is the function that gets the whole game going. It
+// starts the game in one of three modes:
+// 1. Reloaded, using dat that was previously stored locally or in the cloud
+// 2. A new game, using the game data from today's NY Times webpage.
+// 3. Debug mode, using canned HTML (stored in a separate .js file).
+function gameStart(startAction) {
+  debugMode = false;
+  playerName = document.getElementById('playerInputField').value || 'anonymous';
+  let gamePromise;
+  switch (startAction) {
+    case 'Reload Game':
+      gamePromise = getCloudData().then((cloudData) => {
+        if (!reloadGameCloud(cloudData)) {
+          alert('Warning: No cloud or local saved state.\nStarting new game.');
+          prepareGame(nytimesHTMLText);
+        }
+      });
+      break;
+    case 'New Game':
+      gamePromise = getSpellingBee().then(prepareGame);
+      break;
+    case 'Debug Game':
+      gamePromise = Promise.resolve(prepareGame(nytimesHTMLText));
+      debugMode = true;
+  }
+  gamePromise.then(() => initGameHooks());
+}
+
+function dialogBtnHandler() {
+  // For some reason innerText = "", so I'm using innerHTML.
+  this.style.backgroundColor = 'gray';
+  gameStart(this.innerHTML);
 }
 
 function selectLetter() {
@@ -454,6 +551,9 @@ function saveHandler() {
 
 async function saveGameCloud() {
   saveGameClient();
+  // I don't really need to chain updateCloudData because it
+  // isn't an async function/it does not return a promise.
+  // This is a todo. ?????
   return getCloudData().then(updateCloudData).then(setCloudData);
 }
 
@@ -492,6 +592,8 @@ function getCloudData() {
       alert(`Error: Can't get JSONbin.io data: ${reason}`);
       // this catch returns a promise whose resolution value is {}
       return {};
+      // The following });\n} are highlighted in red by the prettifier in VSCODE
+      // but I don't know why.
     });
 }
 
@@ -542,39 +644,6 @@ function reloadGameCloud(cloudData) {
   } = gameStateCloud);
   gameState = gameStateCloud;
   return true;
-}
-
-function prepareGame(htmlString) {
-  return setupGame(getGameInfo(parseSpellingBee(htmlString)));
-}
-
-function gameStart(startAction) {
-  debugMode = false;
-  playerName = document.getElementById('playerInputField').value || 'anonymous';
-  let gamePromise;
-  switch (startAction) {
-    case 'Reload Game':
-      gamePromise = getCloudData().then((cloudData) => {
-        if (!reloadGameCloud(cloudData)) {
-          alert('Warning: No cloud or local saved state.\nStarting new game.');
-          prepareGame(nytimesHTMLText);
-        }
-      });
-      break;
-    case 'New Game':
-      gamePromise = getSpellingBee().then(prepareGame);
-      break;
-    case 'Debug Game':
-      gamePromise = Promise.resolve(prepareGame(nytimesHTMLText));
-      debugMode = true;
-  }
-  gamePromise.then(() => initGameHooks());
-}
-
-function dialogBtnHandler() {
-  // For some reason innerText = "", so I'm using innerHTML.
-  this.style.backgroundColor = 'gray';
-  gameStart(this.innerHTML);
 }
 
 /**
