@@ -25,19 +25,27 @@ This section is to draw reference lines for debugging screen size issues.
   top: 0;
 }
 **/
+
+/* I don't like serifs. */
 body {
   font-family: sans-serif;
 }
 
+/* Only one h1 in my whole app. */
 h1 {
   text-align: center;
   font-size: medium;
 }
 
+/* For the popup message showing the game levels. */
 #levelsHdr {
   margin: 0 0 4px 0;
 }
 
+/**
+ The only paragraphs in my app are in the popup messages.
+ This makes the lines single spaced.
+**/
 p {
   margin: 0 0 0 6px;
 }
@@ -48,16 +56,19 @@ p {
   font-weight: bold;
 }
 
+/* Crude vertical positioning. */
 #hexagonButtons {
   margin: 40px auto;
 }
 
+/* I should probably use flex for evenly spacing these horizontally. */
 #controls {
   margin-left: auto;
   margin-right: auto;
   width: fit-content;
 }
 
+/* These are the delete, submit, etc. buttons. */
 .control {
   margin: 10px;
   border-color: black;
@@ -65,12 +76,14 @@ p {
   background-color: white;
 }
 
+/* Horizontal positioning. Should switch to flex. */
 #wordGuessField {
   margin-left: auto;
   margin-right: auto;
   display: block;
 }
 
+/* Using flex to center gameScore and gameRank. */
 #currentResults {
   display: flex;
   flex-direction: row;
@@ -78,33 +91,40 @@ p {
   margin: 0 auto;
 }
 
+/* Crude positioning. */
 #gameScore,
 #gameRank {
   margin: 20px;
 }
 
+/* Crude sizing. */
 #gameScoreField {
   width: 30px;
 }
 
+/* Crude sizing. */
 #gameRankField {
   width: 100px;
 }
 
-.hide {
-  visibility: hidden;
-}
-
+/* Crude positioning and sizing. */
 #answers {
   margin: 0 auto;
   width: 200px;
 }
 
+/* Crude positioning. */
 #answersHdr {
   margin-bottom: 0;
   text-align: center;
 }
 
+/*
+This is the popup used throughout the game.
+I suppose I should rename it just to popup.
+Originally I only used it when the Submit button
+was pressed.
+*/
 #submitPopup {
   visibility: hidden;
   background: white;
@@ -114,6 +134,11 @@ p {
   padding: 8px;
 }
 
+/*
+This hidden flex container fills the entire body so
+I can position the submitPopup in the cent of the page.
+The color red is just so I can see it when debugging.
+*/
 #submitPopupContainer {
   visibility: hidden;
   background: red;
@@ -129,6 +154,11 @@ p {
   position: absolute;
 }
 
+/*
+The gameStart dialog box appears when the game starts.
+It fills the whole screen and hides the actual game
+(hence the z-index) until everything is initialized.
+*/
 #gameStart {
   background: white;
   border-color: black;
@@ -145,6 +175,7 @@ p {
   position: absolute;
 }
 
+/* Crude sizing. */
 #playerInput {
   width: 200px;
 }
@@ -161,6 +192,20 @@ p {
   border-color: black;
   border-width: thin;
   background-color: white;
+}
+
+/*
+This hexagon grid was derived from:
+From https://codepen.io/ericornelissen/pen/vWbWKv
+I don't fully understand the hack to use borders to create the hexgon shape.
+I also don't fully understand they lay them out in a grid.
+So I didn't manually lay out exactly the hexgons I need for the game.
+I just display a "full" grid and hide the unused hexagons.
+*/
+
+/* For hiding the unused hexagons of the grid. */
+.hide {
+  visibility: hidden;
 }
 
 :root {

@@ -3,18 +3,25 @@
   <head>
     <!--  Meta  -->
     <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, height="device-height",
-    initial-scale=1.0">
+    <!--
+      This meta viewport element is super important. It's how use set the size to
+      fit the size of small device screens.
+    -->
+    <meta
+      name="viewport"
+      content="width=device-width, height=device-height,
+    initial-scale=1.0"
+    />
+    <!-- Not sure why titles are needed. They are not visible. -->
     <title>Nick's Spelling Bee Web App</title>
 
     <!--  Styles  -->
-    <!-- !!!!!!!!!! Remember to change the href after pasting new version into codepen.io !!!!!!!!!! -->
     <link rel="stylesheet" href="styles/index.css" />
   </head>
 
   <body>
     <h1 id="gameHeader">Spelling Bee</h1>
-
+    <!-- This is the modal box that appears when the game starts. -->
     <div class="dialog" id="gameStart">
       <div id="playerInput">
         <label id="playerInputLabel" for="playerInputField">
@@ -28,6 +35,7 @@
         <button class="dialogBtn" value="Debug Game">Debug Game</button>
       </div>
     </div>
+
     <!--
       This section is to draw reference lines for debugging screen size issues.
     <div id="vb"></div>
@@ -36,7 +44,18 @@
     -->
 
     <input type="text" id="wordGuessField" readonly size="20" />
+    <!--
+      This hexagon grid was derived from:
+      From https://codepen.io/ericornelissen/pen/vWbWKv
+      I don't fully understand the hack to use borders to create the hexgon shape.
+      I also don't fully understand they lay them out in a grid.
+      So I didn't manually lay out exactly the hexgons I need for the game.
+      I just display a "full" grid and hide the unused hexagons.
 
+      I label the hex buttons I will be using B1 to B7 and BC for the
+      center button. I number the buttons clockwise around the center
+      button.
+    -->
     <div class="hexagon-container" id="hexagonButtons">
       <div class="hexagon hide"></div>
       <div class="hexagon outerLetter" id="B1">
@@ -72,6 +91,12 @@
       <button class="control" id="save">Save</button>
       <button class="control" id="submit">Submit</button>
     </div>
+
+    <!--
+      This is the timed popup that appears to show how many points an
+      answer is worth. It also shows other messages, such as the ranking
+      levels.
+    -->
     <div id="submitPopupContainer">
       <div class="popup" id="submitPopup">
         <!-- Normally this text is hidden. -->
@@ -87,6 +112,7 @@
         <p>Genius (120)</p>
       </div>
     </div>
+
     <div id="currentResults">
       <div id="gameScore">
         <label for="gameScoreField">Score:</label>
@@ -97,13 +123,19 @@
         <input type="text" id="gameRankField" readonly />
       </div>
     </div>
+
     <div id="answers">
       <h3 id="answersHdr">Answers</h3>
       <div id="answerList">
         <ul></ul>
       </div>
     </div>
+
     <!-- Scripts -->
+    <!--
+      The nytimeshtml.js script simply contains a giant string of HTML.
+      I use it for debugging purposes.
+    -->
     <script src="scripts/nytimeshtml.js" type="text/javascript"></script>
     <script src="scripts/index.js" type="text/javascript"></script>
   </body>

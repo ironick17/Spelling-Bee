@@ -4,6 +4,10 @@
  **/
 
 // Declare global variables. Will intialize them in a setup function.
+// I probably should wrap this whole thing in a closure so I don't
+// pollute the namespace of the browser. I should also just turn all
+// these global varibles into properties of an object referenced
+// through a single global variable.
 
 // Flag for playing a game using an old NY Times HTML string.
 var debugMode;
@@ -11,6 +15,11 @@ var debugMode;
 // NY Times game data for the day.
 var gameData;
 
+/**
+ * This section is declaring
+ * the variables that constitue the game state
+ * that is saved across instances of playing.
+ */
 // Words we are guessing.
 var gameAnswers;
 
@@ -26,17 +35,11 @@ var gameLevels;
 // List of optional letters.
 var outerLetters;
 
-// List of buttons associated with the optional letters.
-var outerLetterButtons;
-
 // The one required letter.
 var centerLetter;
 
 // List of words guessed so far.
 var answerList;
-
-// Where the current word being typed appears on the page.
-var wordGuessField;
 
 // Current score.
 var gameScore;
@@ -44,11 +47,34 @@ var gameScore;
 // Current rank.
 var gameRank;
 
+var gameWeekday;
+
+var gameDate;
+
+// This is an object containing all of the information that needs to be saved in order
+// to resume a game.
+var gameState;
+
+/**
+ * End of section declaring
+ * the variables that constitue the game state
+ * that is saved across instances of playing.
+ */
+
+// This is the millisecond time when the game was last saved (locally or in the cloud).
+var timestamp;
+
+// List of buttons associated with the optional letters.
+var outerLetterButtons;
+
 // Where the currenct score appears on the page.
 var gameScoreField;
 
 // Where the current rank appears on the page.
 var gameRankField;
+
+// Where the current word being typed appears on the page.
+var wordGuessField;
 
 // The popup dialog box that displays various messages: score for correct word, all words found, duplicate word...
 var submitPopupModal;
@@ -63,26 +89,27 @@ var popupLongMsgMultiplier;
 // This is the HTML element that appears at the start of a game.
 var gameStartModal;
 
-// This is an object containing all of the information that needs to be saved in order
-// to resume a game.
-var gameState;
-
-// This is the millisecond time when the game was last saved (locally or in the cloud).
-var timestamp;
-
 // The name of the person playing on this device. Used for saving and reloading games for different players.
 var playerName;
 
+// Guessed answers from yesterday's play.
+var answerListYesterday;
+
+// All answers from yesterday.
+var gameAnswersYesterday;
+
 /**
- * This section of functions are all invovled in getting information from the NY Times Spelling Bee and setting up this local game.
- * Since the fetch function is asynchronous (returns a promise), all but the last of these functions must be promises as well.
+ * This app relies on getting information from the NY Times Spelling Bee via HTTP. I use the fetch function for this.
+ * I also use fetch for accessing my json in the cloud at jsonbin.io.
  *
- * Here is a short description of how I current think about JS promises:
+ * Since the fetch function is asynchronous function that returns a promise it took me quite a while to figure out JS promises.
+ *
+ * Here is a short description of how I currently think about JS promises:
  * I think a promise as a special kind of JS object or function. Usually to access the value of an object you simply use its name
  * in an expression, eg "let foo = myThing", and the access the result of a function you simply use its name followed by "()", eg
  * "let foo = myThing()". But with a promise, using its name in an expression is like using the name of a function NOT followed
- * by "()", all it does is access the function itself, not its return value, eg "let foo = myFunction".
- * The ONLY way to access the value of the promise is to use the method ".then". This method isn't the typical accessor method, eg
+ * by "()", all it does is access the function object itself, not invoke it for a  return value, eg "let foo = myFunction".
+ * The ONLY way to access the value returned by a promise is to use the method ".then". This method isn't the typical accessor method, eg
  * "let foo = myThing.getValue", because the .then method actually takes a callback function as an argument. It is this callback
  * function that will be passed the value/result of the promise. What's cool about the .then method is that you can invoke it
  * on the promise whenever you want, eg even LONG AFTER the promise has been resolved. This is VERY different from a normal
@@ -90,10 +117,15 @@ var playerName;
  *
  * At this point, I'll introduce the term "promissory". I call a function that is actually a promise a "promissory function" and
  * likewise for "promissory object". Thus, the cool thing about a promissory function is that its result can be accessed at any
- * time during the excution of an application and at many different locations in different functions comprising the app.
+ * time during the excution of an application and at many different locations in different functions comprising the app. I
+ * recently discovered that the official name for what I call a promissory, is a thennable: A thennable is an object that defines
+ * a then method.
  *
  * One last insight. Promise chaining, which I use below, isn't anthing special. It just enables you to fire off a series of
- * async functions where the next function doesn't run until the previous one has resolved.
+ * async functions where the next function doesn't run until the previous one has resolved. An even bigger insight is that the
+ * function passed as an argument to the .then method DOES NOT have to be asynch. Invoking the .then method returns a promise,
+ * so the regular, synchronous function is now wrapped in a promise, so the only way to access its return value is to invoke
+ * ITS .then method. This is the basis of .then chaining.
  **/
 
 // Get the Spelling Bee webpage.
@@ -121,7 +153,7 @@ async function getSpellingBee() {
 function parseSpellingBee(htmlText) {
   if (!htmlText.includes('<!DOCTYPE html>')) {
     alert(
-      "Error: Can't parse  NY Times data. Using old NY Times data for debugging."
+      "Error: Can't parse NY Times data./nUsing old NY Times data for debugging."
     );
     debugMode = true;
     htmlText = nytimesHTMLText;
@@ -159,26 +191,51 @@ function getGameInfo(htmlTree) {
 }
 
 function setupGame(gameInfo) {
-  gameData = gameInfo.gameData.today;
-  gameAnswers = gameData.answers.map((letter) => letter.toUpperCase());
-  gamePangrams = gameData.pangrams.map((letter) => letter.toUpperCase());
-  maxScore = 7;
-  gameAnswers.forEach((answer) => {
-    maxScore += answer.length < 5 ? 1 : answer.length;
-  });
-  gameLevels = gameInfo.gameLevels.map((level) => [
-    level[0],
-    Math.round((level[1] / 100) * maxScore),
-  ]);
-  outerLetters = gameData.outerLetters.map((letter) => letter.toUpperCase());
-  centerLetter = gameData.centerLetter.toUpperCase();
-  gameScore = 0;
-  gameRank = '';
-  maxScore = 7; // Initialize to the pangram bonus amount.
-  answerList = [];
-  gameWeekday = gameData.displayWeekday;
-  gameDate = gameData.displayDate;
-  initGameHooks();
+  try {
+    // This reload is primarily so that I can get yesterday's guessed answers.
+    reloadGameClient();
+    /**
+     * Begin initializing all gameState global variables
+     */
+    gameData = gameInfo.gameData.today;
+    gameAnswers = gameData.answers.map((letter) => letter.toUpperCase());
+    gameAnswersYesterday = gameInfo.gameData.yesterday.answers.map((letter) =>
+      letter.toUpperCase()
+    );
+    gameAnswers.forEach((answer) => {
+      maxScore += answer.length < 5 ? 1 : answer.length;
+    });
+    gamePangrams = gameData.pangrams.map((letter) => letter.toUpperCase());
+    maxScore = 7; // Initialize to the pangram bonus amount.
+    gameLevels = gameInfo.gameLevels.map((level) => [
+      level[0],
+      Math.round((level[1] / 100) * maxScore),
+    ]);
+    outerLetters = gameData.outerLetters.map((letter) => letter.toUpperCase());
+    centerLetter = gameData.centerLetter.toUpperCase();
+    answerListYesterday = [];
+    let yesterday = new Date();
+    yesterday.setHours(0, 0, 0, 0);
+    yesterday.setDate(new Date().getDate() - 1);
+    if (gameDate && new Date(gameDate).getTime() == yesterday.getTime()) {
+      answerListYesterday = answerList || [];
+    }
+    answerList = [];
+    gameScore = 0;
+    gameRank = '';
+    gameWeekday = gameData.displayWeekday;
+    gameDate = gameData.displayDate;
+    timestamp = Date.now();
+    /**
+     * End initializing all gameState global variables.
+     */
+  } catch (error) {
+    alert(
+      'Error: NY Times window.gameData structure changed.\nUsing old NY Times data for debugging.'
+    );
+    debugMode = true;
+    setupGame(getGameInfo(parseSpellingBee(nytimesHTMLText)));
+  }
 }
 
 function initGameHooks() {
@@ -226,11 +283,13 @@ function showRankingInfo() {
   displayModal(heading + lines.join('\n'));
 }
 
-// INCOMPLETE FUNCTION. yesterdayMyAnswers not defined yet. ?????
-function showYesterday() {
+function showYesterdayAnswers() {
   let heading = `<h3 id="yesterdayHdr">Yesterday's Answers</h3>\n`;
-  let lines = gameInfo.yesterday.answers.map(
-    (answer) => `<p>${yesterdayMyAnswers.includes(answer) ? '*' : ''}answer</p>`
+  let lines = gameAnswersYesterday.map(
+    (answer) =>
+      `<p>${
+        answerListYesterday.includes(answer) ? '*&nbsp;' : '&nbsp;&nbsp;&nbsp;'
+      }${answer}</p>`
   );
   displayModal(heading + lines.join('\n'));
 }
@@ -265,7 +324,7 @@ function displayModal(message) {
       ' +' +
       Math.abs(message);
   }
-  return new Promise((resolve, reject) => {
+  return new Promise((resolve) => {
     submitPopupModal.innerHTML = message;
     submitPopupModal.style.visibility = 'visible';
     setTimeout(() => {
@@ -463,7 +522,7 @@ function reloadGameCloud(cloudData) {
     timestamp &&
     timestamp > gameStateCloud.timestamp &&
     !confirm(
-      'Warning: Game state saved to cloud is older\nthan local saved state.\nUse cloud saved state?'
+      'Warning: Game state saved to cloud is older than local saved state.\nUse cloud saved state?'
     )
   )
     return true;
@@ -485,37 +544,31 @@ function reloadGameCloud(cloudData) {
   return true;
 }
 
+function prepareGame(htmlString) {
+  return setupGame(getGameInfo(parseSpellingBee(htmlString)));
+}
+
 function gameStart(startAction) {
   debugMode = false;
-  // Add code to get player name at the beginning of the game.
-  // With the name get cloud data and if it is from yesterday,
-  // store yesterday's game state in a global variable that
-  // can be used to show yesterday's results.
-  // Also need to add code to save to cloud to save yesterday's
-  // game state along with today's.
   playerName = document.getElementById('playerInputField').value || 'anonymous';
+  let gamePromise;
   switch (startAction) {
     case 'Reload Game':
-      getCloudData().then((cloudData) => {
-        if (reloadGameCloud(cloudData)) {
-          initGameHooks();
-        } else {
+      gamePromise = getCloudData().then((cloudData) => {
+        if (!reloadGameCloud(cloudData)) {
           alert('Warning: No cloud or local saved state.\nStarting new game.');
-          // Can't drop down to case 'New Game' because this is in a then function.
-          getSpellingBee()
-            .then(parseSpellingBee)
-            .then(getGameInfo)
-            .then(setupGame);
+          prepareGame(nytimesHTMLText);
         }
       });
       break;
     case 'New Game':
-      getSpellingBee().then(parseSpellingBee).then(getGameInfo).then(setupGame);
+      gamePromise = getSpellingBee().then(prepareGame);
       break;
     case 'Debug Game':
+      gamePromise = Promise.resolve(prepareGame(nytimesHTMLText));
       debugMode = true;
-      setupGame(getGameInfo(parseSpellingBee(nytimesHTMLText)));
   }
+  gamePromise.then(() => initGameHooks());
 }
 
 function dialogBtnHandler() {
@@ -550,6 +603,7 @@ document.querySelectorAll('.outerLetter').forEach((aButton) => {
 });
 document.querySelector('.centerLetter').onclick = selectLetter;
 document.getElementById('gameRankLabel').onclick = showRankingInfo;
+document.getElementById('answersHdr').onclick = showYesterdayAnswers;
 document.querySelectorAll('.dialogBtn').forEach((aButton) => {
   aButton.onclick = dialogBtnHandler;
 });
