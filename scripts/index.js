@@ -603,7 +603,7 @@ document.querySelectorAll('.outerLetter').forEach((aButton) => {
 });
 document.querySelector('.centerLetter').onclick = selectLetter;
 document.getElementById('gameRankLabel').onclick = showRankingInfo;
-document.getElementById('answersHdr').onclick = showYesterdayAnswers;
+document.getElementById('gameScoreLabel').onclick = showYesterdayAnswers;
 document.querySelectorAll('.dialogBtn').forEach((aButton) => {
   aButton.onclick = dialogBtnHandler;
 });
