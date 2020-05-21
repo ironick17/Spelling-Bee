@@ -503,9 +503,15 @@ function updateCloudData(cloudData) {
     alert('Error: Cloud data not found. Reinitializing.');
     cloudData.spellingBee = {};
   }
+  // Note we're future proofing the kinds of data that can
+  // be stored for a player. Currently, the object returned
+  // by cloudData.spellingBee[playerName] has only one property:
+  // .gameState.
   if (!cloudData.spellingBee.hasOwnProperty(playerName)) {
     cloudData.spellingBee[playerName] = {};
   }
+  // Note that we don't test whether the cloud gameState
+  // has a more recent timestamp than the local timestamp.
   cloudData.spellingBee[playerName].gameState = gameState;
   return cloudData;
 }
