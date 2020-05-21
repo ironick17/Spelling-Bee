@@ -3,11 +3,19 @@
  * - All our useful JS goes here, awesome!
  **/
 
-// Declare global variables. Will intialize them in a setup function.
-// I probably should wrap this whole thing in a closure so I don't
-// pollute the namespace of the browser. I should also just turn all
-// these global varibles into properties of an object referenced
-// through a single global variable. eg gameState.
+/**
+ *
+ *
+ *
+ *
+ *
+ * This section declares global variables. I will
+ * intialize them later in a setup function. I probably should wrap this whole thing
+ * in a closure so I don't pollute the namespace of the browser. I should also
+ * just turn all these global varibles into properties of an object referenced
+ * through a single global variable. eg gameState.
+ *
+ */
 
 // Flag for playing a game using an old NY Times HTML string.
 // The flag isn't really used for anything other than initializing
@@ -16,14 +24,16 @@
 // went wrong.
 var debugMode;
 
-// NY Times game data for the day.
+// NY Times game data for the day. Not to be confused with the
+// variable gameState, which references an object containing the
+// state of play as saved locally and/or in the cloud.
 var gameData;
 
 /**
- * This section is declaring
- * the variables that constitue the game state
- * that is saved across instances of playing.
+ * This subsection declares the variables that constitue the game state that is
+ * saved across instances of playing.
  **/
+
 // Words we are guessing.
 var gameAnswers;
 
@@ -65,9 +75,7 @@ var gameState;
 var timestamp;
 
 /**
- * End of section declaring
- * the variables that constitue the game state
- * that is saved across instances of playing.
+ * This subsection declares the remaining global variables.
  **/
 
 // List of buttons associated with the optional letters.
@@ -103,6 +111,16 @@ var answerListYesterday;
 
 // All answers from yesterday.
 var gameAnswersYesterday;
+
+/**
+ *
+ *
+ *
+ *
+ *
+ * This section of function declarations defines the functions used to load and
+ * initialize the game in different modes (reload, new, debug).
+ */
 
 /**
  * This app relies on getting information from the NY Times Spelling Bee via
@@ -242,7 +260,9 @@ function setupGame(gameInfo) {
       level[0],
       Math.round((level[1] / 100) * maxScore),
     ]);
-    outerLetters = gameData.outerLetters.map((letter) => letter.toUpperCase());
+    outerLetters = shuffledArrayPermutations(
+      gameData.outerLetters.map((letter) => letter.toUpperCase())
+    );
     centerLetter = gameData.centerLetter.toUpperCase();
     // A simple hack to get the correct guesses from yesterday's play.
     // It's a hack because it doesn't work in the general case.
@@ -252,6 +272,7 @@ function setupGame(gameInfo) {
     // stored in gameState, but we initialize it in this section before
     // we reset answerList and gameDate.
     answerListYesterday = [];
+    gameAnswersYesterday = [];
     let yesterday = new Date();
     yesterday.setHours(0, 0, 0, 0);
     yesterday.setDate(new Date().getDate() - 1);
@@ -259,9 +280,16 @@ function setupGame(gameInfo) {
     // stored on this device are the correct guessed answers for yesterday.
     if (gameDate && new Date(gameDate).getTime() == yesterday.getTime()) {
       answerListYesterday = answerList || [];
+      // Yesterday's game answers are only available when we start from a new
+      // game or the canned game. If we start from a reload, this statement
+      // is never reached.
+      gameAnswersYesterday = gameInfo.gameData.yesterday.answers.map((letter) =>
+        letter.toUpperCase()
+      );
     }
     // Reset the answerList for today's game AFTER we copy it to answerListYesterday!
     answerList = [];
+    // End of simple hack for yesterday's answers.
     gameScore = 0;
     gameRank = '';
     // Reset the weekday and date to the values from the NY Times webpage.
@@ -272,12 +300,6 @@ function setupGame(gameInfo) {
     /**
      * End initializing all gameState global variables.
      */
-    // Yesterday's game answers are only available when we start from a new
-    // game or the canned game. If we start from a reload, this statement
-    // is never reached.
-    gameAnswersYesterday = gameInfo.gameData.yesterday.answers.map((letter) =>
-      letter.toUpperCase()
-    );
   } catch (error) {
     alert(
       `Error: NY Times window.gameData structure changed.\nUsing old NY Times data for debugging.
@@ -290,6 +312,24 @@ function setupGame(gameInfo) {
     // This is a bit of a hack, but it's too hairy to fix for now.
     setupGame(getGameInfo(parseSpellingBee(nytimesHTMLText)));
   }
+}
+
+function shuffledArrayPermutations(arr) {
+  return _.shuffle(getArrayMutations(arr));
+}
+
+function getArrayMutations(arr, perms = [], len = arr.length) {
+  if (len === 1) perms.push(arr.slice(0));
+
+  for (let i = 0; i < len; i++) {
+    getArrayMutations(arr, perms, len - 1);
+
+    len % 2 // parity dependent adjacent elements swap
+      ? ([arr[0], arr[len - 1]] = [arr[len - 1], arr[0]])
+      : ([arr[i], arr[len - 1]] = [arr[len - 1], arr[i]]);
+  }
+
+  return perms;
 }
 
 // I broke out this function so that when we load from the cloud/
@@ -322,32 +362,270 @@ function prepareGame(htmlString) {
 
 // This is the function that gets the whole game going. It
 // starts the game in one of three modes:
-// 1. Reloaded, using dat that was previously stored locally or in the cloud
+// 1. Reloaded, using datA that was previously stored locally or in the cloud
 // 2. A new game, using the game data from today's NY Times webpage.
 // 3. Debug mode, using canned HTML (stored in a separate .js file).
 function gameStart(startAction) {
   debugMode = false;
   playerName = document.getElementById('playerInputField').value || 'anonymous';
+  //I learned a lot about JS promises doing this game. I found I was way
+  // overusing .then methods. A .then method need only be applied to a promise
+  // that is actually asynchronous. If you pass a synchronous function as the
+  // argument of a .then method invocation, it is returned as a synchronous
+  // promise.
+  //
+  // In each case statement I create a different promise, then when it drops
+  // out of the case statement, I use .then to invoke initGameHooks when
+  // gamePromise is resolved.
   let gamePromise;
   switch (startAction) {
     case 'Reload Game':
+      // This is the only tricky promise. getCloudData is an async
+      // function (it does an HTTP request). It's then method invokes only
+      // sync functions: one to actually apply the data from the cloud,
+      // and one to initialize with the canned HTML if anything goes wrong.
       gamePromise = getCloudData().then((cloudData) => {
         if (!reloadGameCloud(cloudData)) {
           alert('Warning: No cloud or local saved state.\nStarting new game.');
           prepareGame(nytimesHTMLText);
+          debugMode = true;
         }
       });
       break;
     case 'New Game':
+      // The core of the game. Get the data from NY Times website and
+      // initialize a new state of game play with it.
       gamePromise = getSpellingBee().then(prepareGame);
       break;
     case 'Debug Game':
+      // "Get" the NY Times website from an HTML string stored in
+      // a different .js file. Note the use of .resolve. I don't
+      // really need to wrap prepareGame in a promise, since it is
+      // sync. But I do it so that all three cases can use the same
+      // .then method below. In this case the gamePromise is already
+      // resolved with the resolved value set to the value returned
+      // by prepare game (which isn't used by initGameHooks).
       gamePromise = Promise.resolve(prepareGame(nytimesHTMLText));
       debugMode = true;
   }
   gamePromise.then(() => initGameHooks());
 }
 
+/**
+ *
+ *
+ *
+ *
+ *
+ * This section of function declarations defines functions used to
+ * save and reload the state of game play.
+ */
+
+// One of the simplest functions in this app. Just bundle up the current
+// values of the set of global variables representing the current state
+// of play, and turn then into an object with a timestamp of now. Then
+// store it in localStorage, which lasts as long as the browser "lasts".
+function saveGameClient() {
+  // The global variable gameState is updated with a new object
+  // representing the state of play (ie the values of the set of
+  // global variables representing the state of play) after every
+  // corrent guess. It is also updated with saving to the cloud.
+  gameState = {
+    gameAnswers,
+    gamePangrams,
+    maxScore,
+    gameLevels,
+    outerLetters,
+    centerLetter,
+    answerList,
+    gameScore,
+    gameRank,
+    gameWeekday,
+    gameDate,
+    timestamp: Date.now(),
+  };
+  localStorage.gameState = JSON.stringify(gameState);
+}
+
+// I should probably rename this saveGame, because it ended up
+// saving both locally and to the cloud. It would look like this:
+//async function saveGame() {
+//  saveGameClient();
+//  return getCloudData().then((cloudData) => setCloudData(updateCloudData(cloudData)));
+//}
+// But I don't feel like working on the app any more. ?????
+
+async function saveGameCloud() {
+  // Saving to client is probably redundant since a local save
+  // is done after every correct guess.
+  saveGameClient();
+  // I don't really need to chain updateCloudData because it
+  // isn't an async function/it does not return a promise.
+  return getCloudData().then(updateCloudData).then(setCloudData);
+}
+
+// Pretty simple way to store a javascript object in the cloud (in JSON notation).
+// Note that jsonbin.io is free, so pretty rudimentary. Plus it limits you to
+// 10K free HTTP requests on your bin (where the JSON string is stored),
+function getCloudData() {
+  return fetch('https://api.jsonbin.io/b/5ebd62b88284f36af7bb1d7b/latest', {
+    method: 'GET',
+    headers: {
+      'Content-Type': 'application/json',
+      'secret-key':
+        '$2b$10$oenHkCkZSs3jpqzXIrl1LeITtaIoYXUBb96HvsRv5vC3Jf4cIVqvy',
+    },
+  })
+    .then((response) => response.json())
+    .catch((reason) => {
+      alert(`Error: Can't get JSONbin.io data: ${reason}`);
+      // this catch returns a promise whose resolution value is {}
+      return {};
+      // The following });\n} was highlighted in red by the prettifier in VSCODE
+      // but I don't know why. It seems fine now.
+    });
+}
+
+// When everything is working right, if the player is say "Nick",
+// this function simply replaces/initializes the value of
+// cloudData.spellingBee.Nick.gameState with the current gameState.
+// Everything else is handling exceptions.
+// I am conservatively assuming that the cloudData object could
+// be storing state for games/apps other than this spelling bee
+// app, so I give this app its own "namespace" by using the "spellingBee"
+// property.
+function updateCloudData(cloudData) {
+  if (_.isEqual(cloudData, {})) {
+    alert('Error: Cloud data not found. Reinitializing.');
+    cloudData = {};
+  }
+  if (!cloudData.hasOwnProperty('spellingBee')) {
+    alert('Error: Cloud data not found. Reinitializing.');
+    cloudData.spellingBee = {};
+  }
+  if (!cloudData.spellingBee.hasOwnProperty(playerName)) {
+    cloudData.spellingBee[playerName] = {};
+  }
+  cloudData.spellingBee[playerName].gameState = gameState;
+  return cloudData;
+}
+
+// I guess I should have called this the saveCloudData function.
+// Note that by doing a PUT, I am completely replacing the value
+// of the jsonbin.io bin. That's why I get its previous value and
+// update it.
+async function setCloudData(cloudData) {
+  let cloudDataString = JSON.stringify(cloudData);
+  return (
+    fetch('https://api.jsonbin.io/b/5ebd62b88284f36af7bb1d7b', {
+      method: 'PUT',
+      headers: {
+        'Content-Type': 'application/json',
+        'secret-key':
+          '$2b$10$oenHkCkZSs3jpqzXIrl1LeITtaIoYXUBb96HvsRv5vC3Jf4cIVqvy',
+      },
+      body: cloudDataString,
+    })
+      // The jsonbin.io documentation says says the HTTP request returns
+      // a JSON object with the property success, which is true if all
+      // went well, and false otherwise.
+      .then(async (response) => {
+        let responseJSON = response.json();
+        return responseJSON.then((response) => response.success);
+      })
+      // I should probably consolodate error handing instead of
+      // just returning false if the value of the "success" property
+      // is false. That kind of error is in the handling by jsonbin.io.
+      // The catch error handing here deals with the HTTP request
+      // process going wrong, eg site not available.
+      .catch((reason) => {
+        alert(`Error: Can't store JSONbin.io data: ${reason}`);
+        return false;
+      })
+  );
+}
+
+// The inverse of saveGameClient, and pretty simple as well.
+function reloadGameClient() {
+  let gameStateStr = localStorage.gameState || '{}';
+  // It is possible for this function to be called in a
+  // browser that has not yet stored any game state.
+  gameState = JSON.parse(gameStateStr);
+  ({
+    gameAnswers,
+    gamePangrams,
+    maxScore,
+    gameLevels,
+    outerLetters,
+    centerLetter,
+    answerList,
+    gameScore,
+    gameRank,
+    gameWeekday,
+    gameDate,
+    timestamp,
+  } = gameState);
+}
+
+function reloadGameCloud(cloudData) {
+  reloadGameClient();
+  let spellingBeeData = cloudData.spellingBee || {};
+  let gameStateCloud = (spellingBeeData[playerName] || {}).gameState;
+  // Was there a gameState stored in the cloud for this player?
+  if (gameStateCloud == undefined) {
+    if (_.isEmpty(gameState)) {
+      // There is nothing locally or in the cloud to reload!
+      return false;
+    } else {
+      // There was no gameState stored in the cloud,
+      // but there is a local gameState. So we will use that.
+      alert(
+        'Warning: No Spelling Bee Game State stored in cloud.\nUsing local saved state of previous player instead.'
+      );
+      return true;
+    }
+    // If there is a cloud gameState but no local one, then
+    // we can skip the following extra testing.
+  } else if (!_.isEmpty(gameState)) {
+    // There are so many different combinations comparing local gameDate/timestamp
+    // to cloud it is mindnumbing! So I'm just going to do a single check:
+    // Is the local timestamp greater than the cloud timestamp. If so, then
+    // We will prompt to confirm. Otherwise, we just use the cloud gameState.
+    if (
+      timestamp > gameStateCloud.timestamp &&
+      !confirm(
+        'Warning: Game state saved to cloud is older than local saved state.\nUse cloud saved state?'
+      )
+    )
+      return true;
+  }
+  ({
+    gameAnswers,
+    gamePangrams,
+    maxScore,
+    gameLevels,
+    outerLetters,
+    centerLetter,
+    answerList,
+    gameScore,
+    gameRank,
+    gameWeekday,
+    gameDate,
+    timestamp,
+  } = gameStateCloud);
+  gameState = gameStateCloud;
+  return true;
+}
+
+/**
+ *
+ *
+ *
+ *
+ *
+ * This section of function declarations defines functions to handle
+ * clicks/presses and display information during game play
+ */
 function dialogBtnHandler() {
   // For some reason innerText = "", so I'm using innerHTML.
   this.style.backgroundColor = 'gray';
@@ -362,21 +640,15 @@ function deleteHandler() {
   wordGuessField.value = wordGuessField.value.slice(0, -1);
 }
 
-function submitHandler() {
-  let guess = wordGuessField.value;
-  let points = guessValue(guess);
-  wordGuessField.value = '';
-  if (points == 0) {
-    displayModal('Not in word list');
-    return;
-  } else if (points == -1) {
-    displayModal('Already found');
-    return;
-  }
-  displayModal(points).then((result) => {
-    if (updateProgress(guess, Math.abs(points)))
-      displayModal('You found them all!');
-    saveGameClient();
+function saveHandler() {
+  this.style.backgroundColor = 'gray';
+  saveGameCloud().then((response) => {
+    displayModal(
+      response
+        ? 'Game saved!'
+        : 'Game saved locally, but failed to save to cloud.'
+    );
+    this.style.backgroundColor = 'white';
   });
 }
 
@@ -401,39 +673,36 @@ function rotateHandler() {
   rotateLetters(outerLetterButtons);
 }
 
-function changeBtnLtr(ltrButton, Ltr) {
-  ltrButton.innerText = Ltr;
-}
-
-function mapBtnLtr(ltrButton, index) {
-  changeBtnLtr(ltrButton, outerLetters[index]);
-}
-
 function rotateLetters(ltrButtonArr) {
   ltrButtonArr.forEach(mapBtnLtr);
   outerLetters.unshift(outerLetters.pop());
 }
 
-function displayModal(message) {
-  if (typeof message == 'number') {
-    message =
-      (message < 0
-        ? 'Pangram!'
-        : 7 <= message
-        ? 'Awesome!'
-        : 1 < message
-        ? 'Nice!'
-        : 'Good!') +
-      ' +' +
-      Math.abs(message);
+function mapBtnLtr(ltrButton, index) {
+  changeBtnLtr(ltrButton, outerLetters[0][index]);
+}
+
+function changeBtnLtr(ltrButton, Ltr) {
+  ltrButton.innerText = Ltr;
+}
+
+function submitHandler() {
+  let guess = wordGuessField.value;
+  let points = guessValue(guess);
+  wordGuessField.value = '';
+  if (points == 0) {
+    displayModal('Not in word list');
+    return;
+  } else if (points == -1) {
+    displayModal('Already found');
+    return;
   }
-  return new Promise((resolve) => {
-    submitPopupModal.innerHTML = message;
-    submitPopupModal.style.visibility = 'visible';
-    setTimeout(() => {
-      submitPopupModal.style.visibility = 'hidden';
-      resolve('closed');
-    }, popupDisplayTime * (message.length > popupLongMsgLength ? popupLongMsgMultiplier : 1));
+  displayModal(points).then((result) => {
+    if (updateProgress(guess, Math.abs(points)))
+      displayModal('You found them all!');
+    // Save the state of play locally after every correct guess.
+    // So even if the device crashes, you don't lose your game.
+    saveGameClient();
   });
 }
 
@@ -487,173 +756,41 @@ function getRank(score) {
   return gameRank;
 }
 
-function saveGameClient() {
-  gameState = {
-    gameAnswers,
-    gamePangrams,
-    maxScore,
-    gameLevels,
-    outerLetters,
-    centerLetter,
-    answerList,
-    gameScore,
-    gameRank,
-    gameWeekday,
-    gameDate,
-    timestamp: Date.now(),
-  };
-  localStorage.gameState = JSON.stringify(gameState);
-}
-
-function updateCloudData(cloudData) {
-  // Need to handle Cancel button differently. ?????
-  if (cloudData == {}) {
-    alert('Error: Cloud data not found. Reinitializing.');
-    cloudData = {};
+function displayModal(message) {
+  if (typeof message == 'number') {
+    message =
+      (message < 0
+        ? 'Pangram!'
+        : 7 <= message
+        ? 'Awesome!'
+        : 1 < message
+        ? 'Nice!'
+        : 'Good!') +
+      ' +' +
+      Math.abs(message);
   }
-  if (!cloudData.hasOwnProperty('spellingBee')) {
-    alert('Error: Cloud data not found. Reinitializing.');
-    cloudData.spellingBee = {};
-  }
-  if (!cloudData.spellingBee.hasOwnProperty(playerName)) {
-    cloudData.spellingBee[playerName] = {};
-  }
-  cloudData.spellingBee[playerName].gameState = gameState;
-  return cloudData;
-}
-
-async function setCloudData(cloudData) {
-  let cloudDataString = JSON.stringify(cloudData);
-  return fetch('https://api.jsonbin.io/b/5ebd62b88284f36af7bb1d7b', {
-    method: 'PUT',
-    headers: {
-      'Content-Type': 'application/json',
-      'secret-key':
-        '$2b$10$oenHkCkZSs3jpqzXIrl1LeITtaIoYXUBb96HvsRv5vC3Jf4cIVqvy',
-    },
-    body: cloudDataString,
-  })
-    .then(async (response) => {
-      let responseJSON = response.json();
-      return responseJSON.then((response) => response.success);
-    })
-    .catch((reason) => {
-      alert(`Error: Can't store JSONbin.io data: ${reason}`);
-      return false;
-    });
-}
-
-function saveHandler() {
-  this.style.backgroundColor = 'gray';
-  saveGameCloud().then((response) => {
-    displayModal(
-      response
-        ? 'Game saved!'
-        : 'Game saved locally, but failed to save to cloud.'
-    );
-    this.style.backgroundColor = 'white';
+  return new Promise((resolve) => {
+    submitPopupModal.innerHTML = message;
+    submitPopupModal.style.visibility = 'visible';
+    setTimeout(() => {
+      submitPopupModal.style.visibility = 'hidden';
+      resolve('closed');
+    }, popupDisplayTime * (message.length > popupLongMsgLength ? popupLongMsgMultiplier : 1));
   });
 }
 
-async function saveGameCloud() {
-  saveGameClient();
-  // I don't really need to chain updateCloudData because it
-  // isn't an async function/it does not return a promise.
-  // This is a todo. ?????
-  return getCloudData().then(updateCloudData).then(setCloudData);
-}
-
-function reloadGameClient() {
-  let gameStateLocal = localStorage.gameState;
-  if (gameStateLocal == undefined) return {};
-  gameStateLocal = JSON.parse(gameStateLocal);
-  ({
-    gameAnswers,
-    gamePangrams,
-    maxScore,
-    gameLevels,
-    outerLetters,
-    centerLetter,
-    answerList,
-    gameScore,
-    gameRank,
-    gameWeekday,
-    gameDate,
-    timestamp,
-  } = gameStateLocal);
-  return gameStateLocal;
-}
-
-function getCloudData() {
-  return fetch('https://api.jsonbin.io/b/5ebd62b88284f36af7bb1d7b/latest', {
-    method: 'GET',
-    headers: {
-      'Content-Type': 'application/json',
-      'secret-key':
-        '$2b$10$oenHkCkZSs3jpqzXIrl1LeITtaIoYXUBb96HvsRv5vC3Jf4cIVqvy',
-    },
-  })
-    .then((response) => response.json())
-    .catch((reason) => {
-      alert(`Error: Can't get JSONbin.io data: ${reason}`);
-      // this catch returns a promise whose resolution value is {}
-      return {};
-      // The following });\n} are highlighted in red by the prettifier in VSCODE
-      // but I don't know why.
-    });
-}
-
-function reloadGameCloud(cloudData) {
-  let gameState = reloadGameClient();
-  let spellingBeeData = cloudData.spellingBee || {};
-  let gameStateCloud = (spellingBeeData[playerName] || {}).gameState;
-  if (gameStateCloud == undefined) {
-    if (gameState == {}) {
-      return false;
-    }
-    alert(
-      'Warning: No Spelling Bee Game State stored in cloud.\nUsing local saved state instead.'
-    );
-    return true;
-  }
-  let gameStateDateCloud = new Date(gameStateCloud.gameDate);
-  let gameStateDateLocal = new Date(gameDate);
-  if (gameStateDateCloud.getTime() < gameStateDateLocal.getTime()) {
-    // The cloud data is for a previous day, so use local data.
-    return true;
-  }
-  // Cloud state could be older than the state on this device if the player initially selected New Gam
-  // on this device, then realized they had already played on another device and had gotten further.
-  // So they refreshed the game page and selected Reload Game to get the other device's state stored
-  // in the cloud.
-  if (
-    timestamp &&
-    timestamp > gameStateCloud.timestamp &&
-    !confirm(
-      'Warning: Game state saved to cloud is older than local saved state.\nUse cloud saved state?'
-    )
-  )
-    return true;
-  ({
-    gameAnswers,
-    gamePangrams,
-    maxScore,
-    gameLevels,
-    outerLetters,
-    centerLetter,
-    answerList,
-    gameScore,
-    gameRank,
-    gameWeekday,
-    gameDate,
-    timestamp,
-  } = gameStateCloud);
-  gameState = gameStateCloud;
-  return true;
-}
-
 /**
- * End of declarations (above), and beginning of execution.
+ *
+ *
+ *
+ *
+ *
+ * This FINAL section excutes various assigment
+ * and initialization statements to begin game play. They are
+ * not included in or setupGame or initGameHooks because they
+ * are not related to the state of game play and they do not
+ * need to be refreshed with each reload of the game. They
+ * only need to be initialized once.
  */
 
 // Turn some of these into consts. ?????
@@ -688,3 +825,12 @@ document.querySelectorAll('.dialogBtn').forEach((aButton) => {
   aButton.onclick = dialogBtnHandler;
 });
 gameStartModal = document.getElementById('gameStart');
+
+/**
+ *
+ *
+ *
+ *
+ *
+ * END OF FLIE
+ */
