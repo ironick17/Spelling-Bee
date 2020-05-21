@@ -49,12 +49,28 @@ h2 {
   margin: 0 0 4px 0;
 }
 
+#yesterdayHdr {
+  margin: 0 0 6px 0;
+}
+
 /**
- The only paragraphs in my app are in the popup messages.
- This makes the lines single spaced.
+The writing-mode property is a workaround for a flex box bug. See here for a
+discussion of the bug: https://github.com/philipwalton/flexbugs#flexbug-14 .
+This should be just a simple flex box with flex-direction column. But the
+contining box won't automatically expand as new columns are added. So we have
+to trick the rendering engine to think that our columns are actually rows.
 **/
-p {
-  margin: 0 0 0 6px;
+
+#displayAnswers {
+  display: flex;
+  flex-direction: row;
+  flex-wrap: wrap;
+  writing-mode: vertical-lr;
+}
+.flexP {
+  margin: 0;
+  font-size: x-small;
+  writing-mode: horizontal-tb;
 }
 
 .centerLetter,
@@ -102,6 +118,10 @@ p {
 #gameScore,
 #gameRank {
   margin: 20px;
+}
+
+.rankP {
+  margin: 0;
 }
 
 /* Crude sizing. */

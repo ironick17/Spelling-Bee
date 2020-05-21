@@ -75,7 +75,8 @@ var gameState;
 var timestamp;
 
 /**
- * This subsection declares the remaining global variables.
+ * This subsection declares the remaining global variables. Some of these should be
+ * made into const instead of var.
  **/
 
 // List of buttons associated with the optional letters.
@@ -272,7 +273,12 @@ function setupGame(gameInfo) {
     // stored in gameState, but we initialize it in this section before
     // we reset answerList and gameDate.
     answerListYesterday = [];
-    gameAnswersYesterday = [];
+    // Yesterday's game answers are only available when we start from a new
+    // game or the canned game. If we start from a reload, this statement
+    // is never reached.
+    gameAnswersYesterday = gameInfo.gameData.yesterday.answers.map((letter) =>
+      letter.toUpperCase()
+    );
     let yesterday = new Date();
     yesterday.setHours(0, 0, 0, 0);
     yesterday.setDate(new Date().getDate() - 1);
@@ -280,12 +286,6 @@ function setupGame(gameInfo) {
     // stored on this device are the correct guessed answers for yesterday.
     if (gameDate && new Date(gameDate).getTime() == yesterday.getTime()) {
       answerListYesterday = answerList || [];
-      // Yesterday's game answers are only available when we start from a new
-      // game or the canned game. If we start from a reload, this statement
-      // is never reached.
-      gameAnswersYesterday = gameInfo.gameData.yesterday.answers.map((letter) =>
-        letter.toUpperCase()
-      );
     }
     // Reset the answerList for today's game AFTER we copy it to answerListYesterday!
     answerList = [];
@@ -323,7 +323,9 @@ function getArrayMutations(arr, perms = [], len = arr.length) {
 
   for (let i = 0; i < len; i++) {
     getArrayMutations(arr, perms, len - 1);
-
+    // The JSHint linter complains about this being an expression
+    // instead of a statement. I don't understand it well enough to
+    // change it.
     len % 2 // parity dependent adjacent elements swap
       ? ([arr[0], arr[len - 1]] = [arr[len - 1], arr[0]])
       : ([arr[i], arr[len - 1]] = [arr[len - 1], arr[i]]);
@@ -619,7 +621,10 @@ function reloadGameCloud(cloudData) {
     gameDate,
     timestamp,
   } = gameStateCloud);
-  gameState = gameStateCloud;
+  // This makes sure the newly reloaded cloud gameState gets stored
+  // as the local gameState as well. It also updates the timestamp
+  // to the time of reload.
+  saveGameClient();
   return true;
 }
 
@@ -660,25 +665,62 @@ function saveHandler() {
 
 function showRankingInfo() {
   let heading = '<h3 id="levelsHdr">Game Levels</h3>\n';
-  let lines = gameLevels.map((level) => `<p>${level[0]} (${level[1]})</p>`);
+  let lines = gameLevels.map(
+    (level) => `<p class="rankP">${level[0]} (${level[1]})</p>`
+  );
   displayModal(heading + lines.join('\n'));
 }
+// I should put this declaration with the rest of the globals
+// and initalize it with them too, but I don't feel like it.
+// It's just for debugging. The window.innerHeight gets the
+// height of the visual viewport.
+var displayAnswerHeight = Math.round(0.8 * window.innerHeight);
 
+// This function turned out to be astonishingly hard. Or
+// rather, the CSS for it turned out to be hard. See comments
+// in CSS file.
 function showYesterdayAnswers() {
-  let heading = `<h3 id="yesterdayHdr">Yesterday's Answers</h3>\n`;
   let lines = gameAnswersYesterday.map(
     (answer) =>
-      `<p>${
+      // Mark the guessed answers with an asterisk. This of course
+      // throws of perfect word alignment due to proportional font,
+      // since asterisk is wider than space, but I don't care
+      // enough to make it perfect. Easy fix would be to use
+      // a monospace font.
+      `<p class="flexP">${
         answerListYesterday.includes(answer) ? '*&nbsp;' : '&nbsp;&nbsp;&nbsp;'
       }${answer}</p>`
   );
-  displayModal(heading + lines.join('\n'));
+  lines = lines.join('\n');
+  // Create a mini section of HTML to display the header and
+  // answers.
+  let html = `<div>
+     <h3 id="yesterdayHdr">Yesterday's Answers</h3>
+     <div id="displayAnswers" style="height:${displayAnswerHeight}px">
+      ${lines}
+     </div>
+   </div>`;
+  displayModal(html);
 }
 
 function rotateHandler() {
   rotateLetters(outerLetterButtons);
 }
 
+// I don't really rotate the letters on the
+// buttons anymore, so I should probably rename
+// the rotate___ functions. I now create an
+// array of all possible permutations of the
+// six letters. Each possibility is also
+// an array, one containing the six letters
+// in a particular permutation order. So
+// I "rotate" these subarrays each time the
+// rotate button is pressed, so that we
+// cycle through all 720 permutations.
+//
+// Minor note: When a game is saved, it will
+// NOT reload with the exact same arrangement
+// of letters.
 function rotateLetters(ltrButtonArr) {
   ltrButtonArr.forEach(mapBtnLtr);
   outerLetters.unshift(outerLetters.pop());
@@ -692,9 +734,12 @@ function changeBtnLtr(ltrButton, Ltr) {
   ltrButton.innerText = Ltr;
 }
 
+// When the user wants to try their guessed
+// word.
 function submitHandler() {
   let guess = wordGuessField.value;
   let points = guessValue(guess);
+  // Delete the display of the guessed word.
   wordGuessField.value = '';
   if (points == 0) {
     displayModal('Not in word list');
@@ -703,7 +748,10 @@ function submitHandler() {
     displayModal('Already found');
     return;
   }
+  // Display the points they got for their guess.
   displayModal(points).then((result) => {
+    // If true is returned, that means we found every
+    // possible word!
     if (updateProgress(guess, Math.abs(points)))
       displayModal('You found them all!');
     // Save the state of play locally after every correct guess.
@@ -712,34 +760,60 @@ function submitHandler() {
   });
 }
 
+// I use a little hack: if the guessed word is
+// one of the pangram words, I return its point
+// value as a negative number. Also I return
+// -1 if the word was already guessed. This
+// kind of overloading of the returned value is
+// not good practice. I should probably return an
+// object with two values (points, flag).
 function guessValue(word) {
   let value = 0;
+  // Already guessed this word.
   if (answerList.includes(word)) {
     return -1;
   }
+  // Yeah! A correct guess.
   if (gameAnswers.includes(word)) {
+    // Calculate points:
+    // Four-letter word: 1 point
+    // Longer word: 1 point for each letter
     if (word.length < 5) {
       value = 1;
     } else {
       value = word.length;
     }
   }
+  // If its one of the pangram words, add
+  // 7 point bonus and make the result
+  // negative.
   if (gamePangrams.includes(word)) {
     value = -7 - value;
   }
   return value;
 }
 
+// Updates a bunch of onscreen information and
+// the value of some of the state of play variables.
 function updateProgress(word, points) {
   gameScore = parseInt(gameScoreField.value) + points;
+  // Update onscreen score.
   gameScoreField.value = gameScore;
+  // Update onscreen rank.
   gameRankField.value = getRank(gameScore);
+  // Add word to the array of guessed answers, and
+  // resort the array.
   answerList.push(word);
   answerList.sort();
+  // Display the updated list of answers.
   displayAnswerList(answerList);
+  // Return true if the game is over, ie
+  // we've found all the answers!
   return answerList.length == gameAnswers.length;
 }
 
+// Create the html for displaying the current guessed answers. The html displays
+// an ordered list. I could turn this into a flex box too, but not now.
 function displayAnswerList(answerList) {
   let listHTML = document.createElement('ol');
   answerList.forEach((word) => {
@@ -747,22 +821,35 @@ function displayAnswerList(answerList) {
     listHTML.appendChild(li);
     li.innerHTML = word;
   });
+  // The first child is the list element in the div with id 'answerList'.
   document.getElementById('answerList').firstChild.replaceWith(listHTML);
 }
 
+// A pretty simple helper function to get the name of the rank
+// that corresponds to a range of scores.
 function getRank(score) {
   let rank;
+  // Iterate through the gameLevels array until we find the item whose score is
+  // greater than the current score. Then we return the name gameLevels item
+  // that just preceeds the item with the greater score.
   gameLevels.some((level, idx, arr) => {
     if (level[1] > score) {
       rank = arr[idx - 1][0];
       return true;
     } else return false;
   });
+  // If our score is above the Genius level, return the name in the last element.
+  // I could just return 'Genius', but maybe they'll change the word someday, eg
+  // to 'Super Brain'.
   gameRank = rank ? rank : gameLevels.slice(-1)[0][0];
   return gameRank;
 }
-
+// This is a timed display modal box. It's mostly used to display
+// the point value of a correctly guessed word (which is passed in as a
+// number). But it can also display any HTML text passed as an argument.
 function displayModal(message) {
+  // These are the pep words appended to the score a la the NY Times
+  // spelling bee.
   if (typeof message == 'number') {
     message =
       (message < 0
@@ -775,9 +862,14 @@ function displayModal(message) {
       ' +' +
       Math.abs(message);
   }
+  // Since we time the closing of the popup, this function returns
+  // a promise, which will resolve when the timer goes off.
   return new Promise((resolve) => {
+    // Insert the message HTML string into the DOM for the webpage.
     submitPopupModal.innerHTML = message;
+    // Disply the popup.
     submitPopupModal.style.visibility = 'visible';
+    // Set the timer for closing the popup.
     setTimeout(() => {
       submitPopupModal.style.visibility = 'hidden';
       resolve('closed');
@@ -799,10 +891,9 @@ function displayModal(message) {
  * only need to be initialized once.
  */
 
-// Turn some of these into consts. ?????
 popupDisplayTime = 1000;
 popupLongMsgLength = 25;
-popupLongMsgMultiplier = 3;
+popupLongMsgMultiplier = 6;
 // When the game is started with a reload, the saved state (gameState)
 // doesn't store yesterday's answers. They are only retrieved from HTML
 // when a new game is started. If a player clicks on "Score" after
