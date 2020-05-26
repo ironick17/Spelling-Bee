@@ -893,7 +893,7 @@ function displayModal(message) {
 
 popupDisplayTime = 1000;
 popupLongMsgLength = 25;
-popupLongMsgMultiplier = 6;
+popupLongMsgMultiplier = 10;
 // When the game is started with a reload, the saved state (gameState)
 // doesn't store yesterday's answers. They are only retrieved from HTML
 // when a new game is started. If a player clicks on "Score" after
