@@ -753,6 +753,9 @@ function submitHandler() {
   } else if (points == -1) {
     displayModal('Already found');
     return;
+  } else if (points == -2) {
+    displayModal('Missing center letter');
+    return;
   }
   // Display the points they got for their guess.
   displayModal(points).then((result) => {
@@ -766,18 +769,19 @@ function submitHandler() {
   });
 }
 
-// I use a little hack: if the guessed word is
-// one of the pangram words, I return its point
-// value as a negative number. Also I return
-// -1 if the word was already guessed. This
-// kind of overloading of the returned value is
-// not good practice. I should probably return an
-// object with two values (points, flag).
+// I use a little hack: if the guessed word is one of the pangram words, I
+// return its point value as a negative number. I return -1 if the word was
+// already guessed. And I return -2 is the word does not contain the center
+// letter. This kind of overloading of the returned value is not good practice.
+// I should probably return an object with two values (points, flag).
 function guessValue(word) {
   let value = 0;
   // Already guessed this word.
   if (answerList.includes(word)) {
     return -1;
+  }
+  if (!word.includes(centerLetter)) {
+    return -2;
   }
   // Yeah! A correct guess.
   if (gameAnswers.includes(word)) {
