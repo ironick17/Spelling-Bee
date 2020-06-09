@@ -247,24 +247,30 @@ function setupGame(gameInfo) {
      */
     gameData = gameInfo.gameData.today;
     // We store/display all game letters and words in uppercase.
-    gameAnswers = gameData.answers.map((letter) => letter.toUpperCase());
+    gameAnswers = gameData.answers.map((word) => word.toUpperCase());
+    gamePangrams = gameData.pangrams.map((word) => word.toUpperCase());
+    outerLetters = gameData.outerLetters.map((letter) => letter.toUpperCase());
+    centerLetter = gameData.centerLetter.toUpperCase();
     // Calculate the maximum possible score so we can calculate
     // rank levels.
-    maxScore = 7;
+    maxScore = 0;
     gameAnswers.forEach((answer) => {
-      maxScore += answer.length < 5 ? 1 : answer.length;
+      maxScore +=
+        // Words of length 4 are only worth 1 point.
+        // Longer words are worth their length in points.
+        answer.length < 5
+          ? 1
+          : // If the answer is also one of the pangrams, add a bonus of 7 points.
+            answer.length + (gamePangrams.includes(answer) ? 7 : 0);
     });
-    gamePangrams = gameData.pangrams.map((letter) => letter.toUpperCase());
     // Use the pecentage in each rank level array to calculate the score
     // required to reach a given rank.
     gameLevels = gameInfo.gameLevels.map((level) => [
       level[0],
       Math.round((level[1] / 100) * maxScore),
     ]);
-    outerLetters = shuffledArrayPermutations(
-      gameData.outerLetters.map((letter) => letter.toUpperCase())
-    );
-    centerLetter = gameData.centerLetter.toUpperCase();
+    // Create all possible permutations of outerLetters so that the Rotate function works correctly.
+    outerLetters = shuffledArrayPermutations(outerLetters);
     // A simple hack to get the correct guesses from yesterday's play.
     // It's a hack because it doesn't work in the general case.
     // It gets yesterday's guesses from localStorage on this device,
